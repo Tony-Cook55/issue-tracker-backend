@@ -1,0 +1,39 @@
+{
+  "name": "issue-tracker-backend",
+  "version": "1.0.0",
+  "description": "This is my Issue Tracker project for AWD 1111",
+  "main": "server.js",
+  "//": "Allows us to use modules with a normal .js file",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "//": "STARTS THE SERVERS BELOW",
+    "start": "node server.js",
+    "start-dev": "nodemon -r dotenv/config server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Tony-Cook55/issue-tracker-backend.git"
+  },
+  "author": "Tony Cook",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Tony-Cook55/issue-tracker-backend/issues"
+  },
+  "homepage": "https://github.com/Tony-Cook55/issue-tracker-backend#readme",
+  "dependencies": {
+    "cookie-parser": "^1.4.6",
+    "debug": "^4.3.4",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "lodash": "^4.17.21",
+    "moment": "^2.29.4",
+    "nanoid": "^4.0.2",
+    "nodemon": "^3.0.1"
+  },
+  "devDependencies": {
+    "eslint": "^8.49.0",
+    "html-validate": "^8.4.0",
+    "stylelint": "^15.10.3"
+  }
+}
