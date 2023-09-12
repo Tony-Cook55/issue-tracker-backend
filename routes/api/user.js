@@ -22,17 +22,53 @@ router.use(express.urlencoded({extended:false}));
 // FIXME: USE THIS ARRAY TO STORE USER DATA IN FOR NOW
 // REPLACE THIS WITH A DATABASE IN A LATER ASSIGNMENT
 const usersArray = [
-  {"email": "123TonyCook@gmail.com", "password": "123Tony","fullName": "Tony Cook",
-    "givenName": "Tony", "familyName": "Cook", "role": "Student" , "id": "1"},
+  {
+    "email": "123TonyCook@gmail.com",
+    "password": "123Tony",
+    "fullName": "Tony Cook",
+    "givenName": "Tony", 
+    "familyName": "Cook", 
+    "role": "Student" , 
+    "id": "1",
+    "usersCreationDate": "",
+    "lastUpdated": "",
+  },
 
-  {"email": "123TBoneyBook@gmail.com", "password": "123Boney","fullName": "Boney Book",
-    "givenName": "Boney", "familyName": "Book", "role": "Teacher" , "id": "2"},
+  {
+    "email": "123TBoneyBook@gmail.com",
+    "password": "123Boney",
+    "fullName": "Boney Book",
+    "givenName": "Boney", 
+    "familyName": "Book", 
+    "role": "Teacher" ,
+    "id": "2",
+    "usersCreationDate": "",
+    "lastUpdated": "", 
+  },
 
-  {"email": "123LonelyLook@gmail.com", "password": "123Lonely","fullName": "Lonely Look",
-    "givenName": "Lonely", "familyName": "Look", "role": "Nascar Driver" , "id": "3"},
+  {
+    "email": "123LonelyLook@gmail.com", 
+    "password": "123Lonely",
+    "fullName": "Lonely Look",
+    "givenName": "Lonely", 
+    "familyName": "Look", 
+    "role": "Nascar Driver" , 
+    "id": "3",
+    "usersCreationDate": "",
+    "lastUpdated": "",
+  },
 
-  {"email": "123ToryCrook@gmail.com", "password": "123Tory","fullName": "Tory Crook",
-    "givenName": "Tory", "familyName": "Crook", "role": "Criminal" , "id": "4"},
+  {
+    "email": "123ToryCrook@gmail.com",
+    "password": "123Tory",
+    "fullName": "Tory Crook",
+    "givenName": "Tory", 
+    "familyName": "Crook", 
+    "role": "Criminal" , 
+    "id": "4",
+    "usersCreationDate": "",
+    "lastUpdated": "",
+  },
 ];
 
 
@@ -77,9 +113,26 @@ router.post("/register", (req, res) => {
   const newUser = req.body; // Getting the users data from a form
 
   // If there is not info in any of the fields throw error status. If not continue with adding user
-  if(!newUser || !newUser.email || !newUser.password || !newUser.fullName
-      || !newUser.givenName || !newUser.familyName || !newUser.role){
-    res.status(400).json({message: "Error when adding a New User"});
+  if(!newUser){
+    res.status(400).json({message: "Please Enter Information for all Fields"});
+  }
+  else if(!newUser.email){
+    res.status(400).json({message: "Please Enter a Email"});
+  }
+  else if(!newUser.password){
+    res.status(400).json({message: "Please Enter a Password"});
+  }
+  else if(!newUser.fullName){
+    res.status(400).json({message: "Please Enter Your Full Name"});
+  }
+  else if(!newUser.givenName){
+    res.status(400).json({message: "Please Enter Your Given Name"});
+  }
+  else if(!newUser.familyName){
+    res.status(400).json({message: "Please Enter Your Family Name"});
+  }
+  else if(!newUser.role){
+    res.status(400).json({message: "Please Enter Your Role"});
   }
   else{
       // if our new user enters an email that matches an email already entered do error
@@ -119,8 +172,14 @@ router.post("/login", (req, res) => {
   const usersLogin = req.body; // Getting the users data from a form
 
   // If there is not info in any of the fields or in either email or password throw error status.
-  if(!usersLogin || !usersLogin.email || !usersLogin.password){
-    res.status(400).json({message: "Please enter your login credentials."});
+  if(!usersLogin){
+    res.status(400).json({message: "Please Enter Your Login Credentials."});
+  }
+  else if(!usersLogin.email){
+    res.status(400).json({message: "Please Enter Your Email."});
+  }
+  else if(!usersLogin.password){
+    res.status(400).json({message: "Please Enter Your Password."});
   }
   else{
 
@@ -129,9 +188,16 @@ router.post("/login", (req, res) => {
     const passwordMatches = usersArray.find((enteredPassword) => enteredPassword.password == usersLogin.password);
 
     // If the email and password entered DO NOT MATCH anything in the array from above throw error
-    if(!emailMatches || !passwordMatches){
+    if(!emailMatches && !passwordMatches){
       res.status(404).json({message: `Invalid login credential provided. Please try again.`});
     }
+    if(!emailMatches){ // If just email doesn't match
+      res.status(404).json({message: `Invalid Email. Please Re-Enter Email.`});
+    }
+    else if(!passwordMatches){ // If just password doesn't match
+      res.status(404).json({message: `Invalid Password. Please Re-Enter Password.`});
+    }
+
 
     // If usersLogin Matches within our array welcome back!
     if(usersLogin){
