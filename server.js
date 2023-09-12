@@ -1,4 +1,12 @@
 
+/*
+ADD THIS IN THE .env file
+DEBUG=app:*
+PORT=5000
+*/
+
+
+
 // ++++++++++++++ IMPORTS ++++++++++++++++
 
 /* eslint-disable no-undef */
@@ -42,6 +50,18 @@ app.use(express.urlencoded({extended: true}));
 
 
 
+// ****** This calls in our UserRouter Which is the code in the user.js file ******
+app.use('/api/users',UserRouter);
+// ****** This calls in our UserRouter Which is the code in the user.js file ******
+
+
+
+// ****** This calls in our BugRouter Which is the code in the bug.js file ******
+app.use('/api/bugs',BugRouter);
+// ****** This calls in our BugRouter Which is the code in the bug.js file ******
+
+
+
 
 
 // REGISTERS THE ROUTES
@@ -49,12 +69,6 @@ app.get("/", (req, res) => {
   debugMain("Home Route Hit");
   res.sendFile(path.join(__dirname, "public/index.html"));
 });
-
-
-// ****** This calls in our UserRouter Which is the code in the user.js file ******
-app.use('/api/users',UserRouter);
-// ****** This calls in our UserRouter Which is the code in the user.js file ******
-
 
 
 // ERROR HANDLERS

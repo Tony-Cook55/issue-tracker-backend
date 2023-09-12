@@ -9,7 +9,7 @@ import debug from "debug";
 const debugUser = debug("app:UserRouter");
 
 
-
+// IMPORTS NANOID
 import { customAlphabet } from 'nanoid'
 const nanoid = customAlphabet('1234567890abcdef', 10)
 
@@ -23,16 +23,16 @@ router.use(express.urlencoded({extended:false}));
 // REPLACE THIS WITH A DATABASE IN A LATER ASSIGNMENT
 const usersArray = [
   {"email": "123TonyCook@gmail.com", "password": "123Tony","fullName": "Tony Cook",
-    "givenName": "Tony", "familyName": "Cook", "role": "Student" , "id": 1},
+    "givenName": "Tony", "familyName": "Cook", "role": "Student" , "id": "1"},
 
   {"email": "123TBoneyBook@gmail.com", "password": "123Boney","fullName": "Boney Book",
-    "givenName": "Boney", "familyName": "Book", "role": "Teacher" , "id": 2},
+    "givenName": "Boney", "familyName": "Book", "role": "Teacher" , "id": "2"},
 
   {"email": "123LonelyLook@gmail.com", "password": "123Lonely","fullName": "Lonely Look",
-    "givenName": "Lonely", "familyName": "Look", "role": "Nascar Driver" , "id": 3},
+    "givenName": "Lonely", "familyName": "Look", "role": "Nascar Driver" , "id": "3"},
 
   {"email": "123ToryCrook@gmail.com", "password": "123Tory","fullName": "Tory Crook",
-    "givenName": "Tory", "familyName": "Crook", "role": "Criminal" , "id": 4},
+    "givenName": "Tory", "familyName": "Crook", "role": "Criminal" , "id": "4"},
 ];
 
 
@@ -41,6 +41,8 @@ const usersArray = [
 router.get("/list", (req, res) => {
   res.json(usersArray);
 });
+// GETS THE LIST OF ALL USERS FROM THE usersArray
+
 
 
 //!!!!!!!!!!!!!!!!!!  SEARCHING BY ID !!!!!!!!!!!!!!!!   http://localhost:5000/api/users/ (id of User)
@@ -71,12 +73,11 @@ router.get("/:userId", (req, res) => {   // the :userId   makes a param variable
 
 
 // ++++++++++++++++ ADDING A NEW USER TO THE ARRAY ++++++++++++++++++ http://localhost:5000/api/users/register
-
 router.post("/register", (req, res) => {
   const newUser = req.body; // Getting the users data from a form
 
   // If there is not info in any of the fields throw error status. If not continue with adding user
-  if(!newUser || !newUser.email || !newUser.password || !newUser.fullName 
+  if(!newUser || !newUser.email || !newUser.password || !newUser.fullName
       || !newUser.givenName || !newUser.familyName || !newUser.role){
     res.status(400).json({message: "Error when adding a New User"});
   }
@@ -98,7 +99,7 @@ router.post("/register", (req, res) => {
         newUser.id = nanoid()
 
         // Here we create a new item in the array called usersCreationDate and we set the time it was made at for its value
-        newUser.usersCreationDate = new Date();
+        newUser.usersCreationDate = new Date().toDateString();
 
         // Good Message
         res.status(200).json({message: `Hello ${newUser.fullName}! Glad To Have You`}); // SUCCESS MESSAGE
@@ -117,7 +118,7 @@ router.post("/login", (req, res) => {
 
   const usersLogin = req.body; // Getting the users data from a form
 
-  // If there is not info in any of the fields or in either email or password throw error status. 
+  // If there is not info in any of the fields or in either email or password throw error status.
   if(!usersLogin || !usersLogin.email || !usersLogin.password){
     res.status(400).json({message: "Please enter your login credentials."});
   }
@@ -131,7 +132,7 @@ router.post("/login", (req, res) => {
     if(!emailMatches || !passwordMatches){
       res.status(404).json({message: `Invalid login credential provided. Please try again.`});
     }
-    
+
     // If usersLogin Matches within our array welcome back!
     if(usersLogin){
       res.status(200).json({message: `Welcome back!`});
@@ -145,28 +146,21 @@ router.post("/login", (req, res) => {
 
 
 
-
-
-
-
-
 //```````````````````` UPDATE A USER ````````````````````  http://localhost:5000/api/users/ (ID here)
 router.put("/:userId", (req, res) => {
-  //FIXME: UPDATE EXISTING USER AND SEND RESPONSE AND JSON
 
   // This gets the ID from the users input
-  const userId = req.params.id;
+  const userId = req.params.userId; // <--- .userId Must equal whatever is in the  router.put("/:WHATEVER IS HERE", (req, res) => {
 
   // Looks for the id user entered to see if its in array
   const currentUser = usersArray.find(currentId => currentId.id == userId);
 
-
-
   // For this line to work you have to have the body parser thats up top MIDDLEWARE
   const updatedUser = req.body;  // An .body is an object in updatedBook lets our body read the users id
+  // .body holds all the information/fields the user enters 
 
 
-    
+
   // If currentUser is true go through update process
   if(currentUser){
     for(const key in updatedUser){  // loops through the keys in the updated User (email, password, fullName, etc.)
@@ -177,9 +171,12 @@ router.put("/:userId", (req, res) => {
 
 
     // We will save the current User back into the array
-    const index = usersArray.findIndex(currentId => currentId.id == userId);
-    if(index != -1){
-      usersArray[index] == currentUser; // saving Users data back into the array
+    const usersPositionInArray = usersArray.findIndex(currentId => currentId.id == userId);
+    if(usersPositionInArray != -1){
+      usersArray[usersPositionInArray] = currentUser; // saving Users data back into the array
+
+      // Here we create a new item in the array called lastUpdated and we set the time it was made at for its value
+      currentUser.lastUpdated = new Date().toDateString();
     }
 
     res.status(200).json({message: `User ${userId} updated`}); // Success Message
@@ -198,14 +195,40 @@ else{ // ERROR MESSAGE
 
 
 
-
-
-
-
-
+// -------------------- DELETING USER FROM ARRAY -------------------
 router.delete("/:userId", (req, res) => {
   //FIXME: DELETE USER AND SEND RESPONSE AS JSON
+
+  
+  // Getting the id from the users URL
+  const userId = req.params.userId;  //<--- .userId Must equal whatever is in the "/:(Whatever is here)"
+
+
+  // Reads the position that a User is in based on the array
+  const usersPositionInArray = usersArray.findIndex(idOfUser => idOfUser.id == userId);
+
+  // If the the users position in the array is valid .splice it out of its current position in the array
+  if(usersPositionInArray != -1){ 
+    usersArray.splice(usersPositionInArray,1); // this is starting at what item and the amount of items (index, 1 item)
+    res.status(200).json({message: `User ${userId} deleted`}); // Success Message
+  }
+  else{
+    res.status(404).json({message: `User ${userId} Not Found`}); // Error Message
+  }
 });
+// -------------------- DELETING USER FROM ARRAY -------------------
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
