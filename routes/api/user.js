@@ -43,7 +43,7 @@ router.get("/list", (req, res) => {
 });
 
 
-//!!!!!!!!!!!!!!!!!!  SEARCHING BY _id //!!!!!!!!!!!!!!!!!!   http://localhost:5000/api/users/ (id of User)
+//!!!!!!!!!!!!!!!!!!  SEARCHING BY ID !!!!!!!!!!!!!!!!   http://localhost:5000/api/users/ (id of User)
 // GETTING A USER BY THEIR userId
 router.get("/:userId", (req, res) => {   // the :userId   makes a param variable that we pass in
   //READS THE userId from the URL and stores it in a variable
@@ -61,7 +61,7 @@ router.get("/:userId", (req, res) => {   // the :userId   makes a param variable
       res.status(404).json({message: `ID ${userId} not found`}); // ERROR MESSAGE
     }
 });
-//!!!!!!!!!!!!!!!!!!  SEARCHING BY _id //!!!!!!!!!!!!!!!!!!
+//!!!!!!!!!!!!!!!!!!  SEARCHING BY ID !!!!!!!!!!!!!!!!!!!!!
 
 
 
@@ -75,31 +75,35 @@ router.get("/:userId", (req, res) => {   // the :userId   makes a param variable
 router.post("/register", (req, res) => {
   const newUser = req.body; // Getting the users data from a form
 
-  // IF we have valid data for a new user do this
-  if(newUser){
-
-      // This is adding a new id
-      //const id = books.length + 1;  // gets the length of the array and counts them so it can +1 for new ID 
-      //newBook._id = id; // Sets the newBooks _id to +1 after the last _id of books
-
-
-      usersArray.push(newUser); // Pushing our new users data into our usersArray
-
-      // This uses the nanoid we imported and the newUser.id attribute in the array will be a random nanoid
-      newUser.id = nanoid()
-
-      res.status(200).json({message: `Hello ${newUser.fullName}! Glad To Have You)`}); // SUCCESS MESSAGE
-  }
-
-
-  //TODO: FIXME: FIX ERROR MESSAGES
-  else if(newUser == usersArray.find(findUsersEmail => findUsersEmail.id == email)){ // IF WE ALREADY HAVE IT??????????asdasd
-    res.status(400).json({message: 'User With The Email of ${newUser.email} Already Exists'});
-  }
-  else{ // ERROR MESSAGE
+  // If there is not info in any of the fields throw error status. If not continue with adding user
+  if(!newUser || !newUser.email || !newUser.password || !newUser.fullName 
+      || !newUser.givenName || !newUser.familyName || !newUser.role){
     res.status(400).json({message: "Error when adding a New User"});
   }
+  else{
+      // if our new user enters an email that matches an email already entered do error
+      const emailExists = usersArray.find((userEmail) => userEmail.email === newUser.email);
+      if(emailExists){
+        res.status(400).json({message: `User With The Email of ${newUser.email} Already Exists`});
+      }
 
+
+      // IF we have valid data for a new user do this
+      if(newUser){
+
+         // Pushing/Adding our new users data into our usersArray
+        usersArray.push(newUser);
+
+        // This uses the nanoid we imported and the newUser.id attribute in the array will be a random nanoid
+        newUser.id = nanoid()
+
+        // Here we create a new item in the array called usersCreationDate and we set the time it was made at for its value
+        newUser.usersCreationDate = new Date();
+
+        // Good Message
+        res.status(200).json({message: `Hello ${newUser.fullName}! Glad To Have You`}); // SUCCESS MESSAGE
+      }
+  }
 });
 // ++++++++++++++++ ADDING A NEW USER TO THE ARRAY ++++++++++++++++++
 
@@ -108,21 +112,95 @@ router.post("/register", (req, res) => {
 
 
 
-
-
-
-
-
-
-
+// /////////////// USER LOGIN IN EMAIL & PASSWORD ///////////////// http://localhost:5000/api/users/login
 router.post("/login", (req, res) => {
-  //FIXME: CHECK USERS EMAIL AND PASSWORD AND SEND RESPONSE AS JSON
+
+  const usersLogin = req.body; // Getting the users data from a form
+
+  // If there is not info in any of the fields or in either email or password throw error status. 
+  if(!usersLogin || !usersLogin.email || !usersLogin.password){
+    res.status(400).json({message: "Please enter your login credentials."});
+  }
+  else{
+
+    // If our array find finds the usersLogin entered has the email and password set them to const variables
+    const emailMatches = usersArray.find((enteredEmail) => enteredEmail.email == usersLogin.email);
+    const passwordMatches = usersArray.find((enteredPassword) => enteredPassword.password == usersLogin.password);
+
+    // If the email and password entered DO NOT MATCH anything in the array from above throw error
+    if(!emailMatches || !passwordMatches){
+      res.status(404).json({message: `Invalid login credential provided. Please try again.`});
+    }
+    
+    // If usersLogin Matches within our array welcome back!
+    if(usersLogin){
+      res.status(200).json({message: `Welcome back!`});
+    }
+  }
 });
+// /////////////// USER LOGIN IN EMAIL & PASSWORD /////////////////
 
 
+
+
+
+
+
+
+
+
+
+//```````````````````` UPDATE A USER ````````````````````  http://localhost:5000/api/users/ (ID here)
 router.put("/:userId", (req, res) => {
   //FIXME: UPDATE EXISTING USER AND SEND RESPONSE AND JSON
+
+  // This gets the ID from the users input
+  const userId = req.params.id;
+
+  // Looks for the id user entered to see if its in array
+  const currentUser = usersArray.find(currentId => currentId.id == userId);
+
+
+
+  // For this line to work you have to have the body parser thats up top MIDDLEWARE
+  const updatedUser = req.body;  // An .body is an object in updatedBook lets our body read the users id
+
+
+    
+  // If currentUser is true go through update process
+  if(currentUser){
+    for(const key in updatedUser){  // loops through the keys in the updated User (email, password, fullName, etc.)
+      if(currentUser[key] != updatedUser[key]){ // if the current Users key(fullName for ex.) is not == to the updated User 
+        currentUser[key] = updatedUser[key]; // go ahead and update it
+      }
+    }
+
+
+    // We will save the current User back into the array
+    const index = usersArray.findIndex(currentId => currentId.id == userId);
+    if(index != -1){
+      usersArray[index] == currentUser; // saving Users data back into the array
+    }
+
+    res.status(200).json({message: `User ${userId} updated`}); // Success Message
+
+}
+else{ // ERROR MESSAGE
+  res.status(404).json({message: `User ${userId} not found.`});
+}
+
+
+
 });
+//```````````````````` UPDATE A USER ```````````````````` 
+
+
+
+
+
+
+
+
 
 
 router.delete("/:userId", (req, res) => {

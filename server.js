@@ -34,6 +34,16 @@ const __dirname = path.dirname(__filename);
 const app = express();
 
 
+
+// ````` UPDATE `````
+//MIDDLEWARE THAT allows form data from a users input to UPDATE a USER by ID   .use is global
+app.use(express.urlencoded({extended: true}));
+// ````` UPDATE `````
+
+
+
+
+
 // REGISTERS THE ROUTES
 app.get("/", (req, res) => {
   debugMain("Home Route Hit");
