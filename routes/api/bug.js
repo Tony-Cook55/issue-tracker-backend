@@ -155,7 +155,7 @@ router.put("/:bugId", (req, res) => {
   const currentBug = bugsArray.find(currentBugId => currentBugId.id == bugsId);
 
   // For this line to work you have to have the body parser thats up top MIDDLEWARE
-  const updatedBug = req.body;  // An .body is an object in updatedBook lets our body read the Bugs id
+  const updatedBug = req.body;  // An .body is an object lets our body read the Bugs id
   // .body holds all the information/fields the user enters
 
 
@@ -196,8 +196,6 @@ else{ // ERROR MESSAGE
 
 // ~~~~~~~~~~~~~~~~~~~ CLASSIFY A BUG ~~~~~~~~~~~~~~~~~~~  http://localhost:5000/api/bugs/classify/(ID here)/
 router.put("/classify/:bugId", (req,res) => {
-//FIXME: CLASSIFY BUG AND SEND RESPONSE AS JSON
-
 
   //GETS the users input for the bugs id from the url
   const bugsId = req.params.bugId;
@@ -206,7 +204,7 @@ router.put("/classify/:bugId", (req,res) => {
   const currentBug = bugsArray.find(currentBugId => currentBugId.id == bugsId);
 
   // For this line to work you have to have the body parser thats up top MIDDLEWARE
-  const updatedBug = req.body;  // An .body is an object in updatedBook lets our body read the Bugs id
+  const classifyBug = req.body;  // An .body is an object lets our body read the Bugs id
   // .body holds all the information/fields the user enters
 
 
@@ -218,16 +216,16 @@ router.put("/classify/:bugId", (req,res) => {
   }
 
   // If there is no input in the body field for the classification throw this error
-  if(!updatedBug.classification){
+  if(!classifyBug.classification){
     res.status(404).json({message: `Please Enter a Classification`});
   }
 
 
   // If currentBug is true go through update process
-  if(updatedBug){
-      for(const key in updatedBug){  // loops through the keys in the updated Bug (title, description, stepsToReproduce.)
-        if(currentBug[key] != updatedBug[key]){ // if the current Users key(title for ex.) is not == to the updated Bug
-          currentBug[key] = updatedBug[key]; // go ahead and update it
+  if(classifyBug){
+      for(const key in classifyBug){  // loops through the keys in the updated Bug (classification)
+        if(currentBug[key] != classifyBug[key]){ // if the current Users key(classification for ex.) is not == to the updated Bug
+          currentBug[key] = classifyBug[key]; // go ahead and update it
         }
       }
 
@@ -258,10 +256,68 @@ router.put("/classify/:bugId", (req,res) => {
 
 
 
+// ^^^^^^^^^^^^^^^^^^ ASSIGN A BUG ^^^^^^^^^^^^^^^^^^
+router.put("/assign/:bugId", (req,res) => {
 
-router.put(":bugId/assign", (req,res) => {
-  //FIXME: ASSIGN BUG TO A USER AND SEND RESPONSE AS JSON
+  //GETS the users input for the bugs id from the url
+  const bugsId = req.params.bugId;
+
+  // Looks for the id user entered to see if its in array
+  const currentBug = bugsArray.find(currentBugId => currentBugId.id == bugsId);
+
+  // For this line to work you have to have the body parser thats up top MIDDLEWARE
+  const assignBug = req.body;  // An .body is an object in updatedBook lets our body read the Bugs id
+  // .body holds all the information/fields the user enters
+
+
+
+
+  // If ID inputted is wrong
+  if(!currentBug){ // ERROR MESSAGE
+    res.status(404).json({message: `Bug ${bugsId} not found.`});
+  }
+
+
+  // If there is no input in the body field for the Users Id or UsersName throw this error
+  if(!assignBug.assignedToUserId && !assignBug.assignedToUserName){
+    res.status(404).json({message: `Please Enter a User Id and a Users Name To assign Bug To`});
+  }
+  else if(!assignBug.assignedToUserId){
+    res.status(404).json({message: `Please Enter a User Id To assign Bug To`});
+  }
+  else if(!assignBug.assignedToUserName){
+    res.status(404).json({message: `Please Enter a Users Name To assign Bug To`});
+  }
+
+
+  // If currentBug is true go through update process
+  if(assignBug){
+      for(const key in assignBug){  // loops through the keys in the assignBug (assignedToUserId, assignedToUserName)
+        if(currentBug[key] != assignBug[key]){ // if the current Users key(assignedToUserName for ex.) is not == to the updated Bug
+          currentBug[key] = assignBug[key]; // go ahead and update it
+        }
+      }
+
+
+      // We will save the current Bug back into the array
+      const bugsPositionInArray = bugsArray.findIndex(currentBugId => currentBugId.id == bugsId);
+      if(bugsPositionInArray != -1){
+        bugsArray[bugsPositionInArray] = currentBug; // saving Users data back into the array
+
+
+        // Create and set the date this bug is assignedOn
+        currentBug.assignedOn = new Date().toDateString();
+
+        // Here we create a new item in the array called lastUpdated and we set the time it was made at for its value
+        currentBug.lastUpdated = new Date().toDateString();
+      }
+
+      res.status(200).json({message: `Bug Assigned`}); // Success Message
+
+  }
+
 });
+// ^^^^^^^^^^^^^^^^^^ ASSIGN A BUG ^^^^^^^^^^^^^^^^^^
 
 
 
@@ -280,10 +336,67 @@ router.put(":bugId/assign", (req,res) => {
 
 
 
+// xxxxxxxxxxxxxx CLOSE BUG xxxxxxxxxxxxxx
+router.put("/close/:bugId", (req,res) => {
 
-router.put(":bugId/close", (req,res) => {
-  //FIXME: CLOSE BUG AND SEND RESPONSE AS JSON
+  //GETS the users input for the bugs id from the url
+  const bugsId = req.params.bugId;
+
+  // Looks for the id user entered to see if its in array
+  const currentBug = bugsArray.find(currentBugId => currentBugId.id == bugsId);
+
+  // For this line to work you have to have the body parser thats up top MIDDLEWARE
+  const closeBug = req.body;  // An .body is an object in updatedBook lets our body read the Bugs id
+  // .body holds all the information/fields the user enters
+
+
+
+
+  // If ID inputted is wrong
+  if(!currentBug){ // ERROR MESSAGE
+    res.status(404).json({message: `Bug ${bugsId} not found.`});
+  }
+
+
+  // If there is no input in the body field for the closed throw this error
+  if(!closeBug.closed){
+    res.status(404).json({message: `Please Enter Information to Close the Bug`});
+  }
+
+
+  // If currentBug is true go through update process
+  if(closeBug){
+      for(const key in closeBug){  // loops through the keys in the assignBug (closed)
+        if(currentBug[key] != closeBug[key]){ // if the current Users key(closed for ex.) is not == to the updated Bug
+          currentBug[key] = closeBug[key]; // go ahead and update it
+        }
+      }
+
+
+      // We will save the current Bug back into the array
+      const bugsPositionInArray = bugsArray.findIndex(currentBugId => currentBugId.id == bugsId);
+      if(bugsPositionInArray != -1){
+        bugsArray[bugsPositionInArray] = currentBug; // saving Users data back into the array
+
+
+        // Create and set the date this bug is closedOn
+        currentBug.closedOn = new Date().toDateString();
+
+        // Here we create a new item in the array called lastUpdated and we set the time it was made at for its value
+        currentBug.lastUpdated = new Date().toDateString();
+      }
+
+      res.status(200).json({message: `Bug Closed`}); // Success Message
+
+  }
+
+
 });
+// xxxxxxxxxxxxxx CLOSE BUG xxxxxxxxxxxxxx
+
+
+
+
 
 
 export {router as BugRouter};
