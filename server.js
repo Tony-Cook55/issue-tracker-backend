@@ -5,8 +5,16 @@ DEBUG=app:*
 PORT=5000
 */
 
-
 // npm run start-dev
+
+
+// ---- GCLOUD ----
+// After we have gcloud to redeploy add this in terminal     gcloud app deploy
+/*
+To view your application in the web browser run:
+  $ gcloud app browse
+*/
+// https://cook-issuetracker-backend.uc.r.appspot.com/
 
 
 // ++++++++++++++ IMPORTS ++++++++++++++++
@@ -36,12 +44,22 @@ import { BugRouter } from './routes/api/bug.js';
 
 // ++++++++++++++ IMPORTS ++++++++++++++++
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+
+// THIS LOOKS FOR THE STATIC FILES
+// const __filename = fileURLToPath(import.meta.url);
+// const __dirname = path.dirname(__filename);
+
 
 
 // CREATES OUR WEB SEVER
 const app = express();
+
+
+
+
+
+// This looks for any static files in our public folder so our CSS and our HTML
+app.use(express.static('public'))
 
 
 
@@ -66,10 +84,10 @@ app.use('/api/bugs',BugRouter);
 
 
 
-// REGISTERS THE ROUTES
+// REGISTERS THE ROUTES FOR THE HOME PAGE index.html
 app.get("/", (req, res) => {
   debugMain("Home Route Hit");
-  res.sendFile(path.join(__dirname, "public/index.html"));
+  res.sendFile("index.html");
 });
 
 

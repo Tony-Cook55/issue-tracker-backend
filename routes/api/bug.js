@@ -121,14 +121,16 @@ router.post("/new", (req, res) => {
       // IF we have valid data for a new Bug do this and ADD it to array
       if(newBug){
 
-        // Pushing/Adding our new Bugs fields into our bugsArray
-        bugsArray.push(newBug); // pushes newBug info
-
         // This uses the nanoid we imported and the newUser.id attribute in the array will be a random nanoid
         newBug.id = nanoid();
 
         // Here we create a new item in the array called bugsCreationDate and we set the time it was made at for its value
         newBug.bugsCreationDate = new Date().toDateString();
+
+
+        // Pushing/Adding our new Bugs fields into our bugsArray
+        bugsArray.push(newBug); // pushes newBug info
+
 
         // Good Message
         res.status(200).json({message: `The New Bug ${newBug.title} Has Been Successfully Reported`}); // SUCCESS MESSAGE
@@ -195,7 +197,7 @@ else{ // ERROR MESSAGE
 
 
 // ~~~~~~~~~~~~~~~~~~~ CLASSIFY A BUG ~~~~~~~~~~~~~~~~~~~  http://localhost:5000/api/bugs/classify/(ID here)/
-router.put("/classify/:bugId", (req,res) => {
+router.put("/:bugId/classify", (req,res) => {
 
   //GETS the users input for the bugs id from the url
   const bugsId = req.params.bugId;
@@ -257,7 +259,7 @@ router.put("/classify/:bugId", (req,res) => {
 
 
 // ^^^^^^^^^^^^^^^^^^ ASSIGN A BUG ^^^^^^^^^^^^^^^^^^
-router.put("/assign/:bugId", (req,res) => {
+router.put("/:bugId/assign", (req,res) => {
 
   //GETS the users input for the bugs id from the url
   const bugsId = req.params.bugId;
@@ -337,7 +339,7 @@ router.put("/assign/:bugId", (req,res) => {
 
 
 // xxxxxxxxxxxxxx CLOSE BUG xxxxxxxxxxxxxx
-router.put("/close/:bugId", (req,res) => {
+router.put("/:bugId/close", (req,res) => {
 
   //GETS the users input for the bugs id from the url
   const bugsId = req.params.bugId;
