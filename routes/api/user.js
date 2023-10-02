@@ -1,4 +1,5 @@
 
+// I I I I I I I    IMPORTS   I I I I I I I
 import express from "express";
 
 
@@ -14,90 +15,76 @@ import { customAlphabet } from 'nanoid'
 const nanoid = customAlphabet('1234567890abcdef', 10)
 
 
+//This allows us to encrypt our passwords using this: npm i bcrypt
+import bcrypt from "bcrypt";
+
+
+// Imports all the functions from the database.js file to CRUD Users
+import { connect, getAllUsers, getUserById, addNewUser, emailAlreadyExistsCheck,  deleteUser} from "../../database.js";
+
+
+// I I I I I I I    IMPORTS   I I I I I I I
+
 
 
 router.use(express.urlencoded({extended:false}));
 
 
-// FIXME: USE THIS ARRAY TO STORE USER DATA IN FOR NOW
-// REPLACE THIS WITH A DATABASE IN A LATER ASSIGNMENT
-const usersArray = [
-  {
-    "email": "123TonyCook@gmail.com",
-    "password": "123Tony",
-    "fullName": "Tony Cook",
-    "givenName": "Tony",
-    "familyName": "Cook",
-    "role": "Student" ,
-    "id": "1",
-    "usersCreationDate": "",
-    "lastUpdated": "",
-  },
-
-  {
-    "email": "123TBoneyBook@gmail.com",
-    "password": "123Boney",
-    "fullName": "Boney Book",
-    "givenName": "Boney",
-    "familyName": "Book",
-    "role": "Teacher" ,
-    "id": "2",
-    "usersCreationDate": "",
-    "lastUpdated": "",
-  },
-
-  {
-    "email": "123LonelyLook@gmail.com",
-    "password": "123Lonely",
-    "fullName": "Lonely Look",
-    "givenName": "Lonely",
-    "familyName": "Look",
-    "role": "Nascar Driver" ,
-    "id": "3",
-    "usersCreationDate": "",
-    "lastUpdated": "",
-  },
-
-  {
-    "email": "123ToryCrook@gmail.com",
-    "password": "123Tory",
-    "fullName": "Tory Crook",
-    "givenName": "Tory",
-    "familyName": "Crook",
-    "role": "Criminal" ,
-    "id": "4",
-    "usersCreationDate": "",
-    "lastUpdated": "",
-  },
-];
 
 
 
-// GETS THE LIST OF ALL USERS FROM THE usersArray
-router.get("/list", (req, res) => {
-  res.json(usersArray);
+
+
+// ~~~~~~~~~~~~~~~~ FIND ALL USERS ~~~~~~~~~~~~~~~~ // http://localhost:5000/api/users/list
+
+router.get("/list", async (req, res) => {
+  try {
+    // Connects to the DB Using the connect Function
+    const dbConnected = await connect();
+
+    // Calls in the getAllUsers() Function from database.js finding all the Users
+    const allUsers = await getAllUsers();
+
+    // Success Message
+    res.status(200).json(allUsers);
+    debugUser("Success! Found All The Users\n"); // Message Appears in terminal
+
+  }
+  catch (err) { // Error Message
+    res.status(500).json({error: err.stack});
+    debugUser("Error When Finding All Users\n"); // Message Appears in terminal
+  }
 });
-// GETS THE LIST OF ALL USERS FROM THE usersArray
+// ~~~~~~~~~~~~~~~~ FIND ALL USERS ~~~~~~~~~~~~~~~~ //
+
+
+
 
 
 
 //!!!!!!!!!!!!!!!!!!  SEARCHING BY ID !!!!!!!!!!!!!!!!   http://localhost:5000/api/users/ (id of User)
 // GETTING A USER BY THEIR userId
-router.get("/:userId", (req, res) => {   // the :userId   makes a param variable that we pass in
-  //READS THE userId from the URL and stores it in a variable
-  const userId = req.params.userId; // were are getting a request with the parameters a user puts for the .id
+router.get("/:userId", async (req, res) => {   // the :userId   makes a param variable that we pass in
+  try {
+    // Connects to the DB Using the connect Function
+    const dbConnected = await connect();
 
-  // This finds the input the user put and if it matches an ID it will get it and display
-  const getUserID = usersArray.find(findUserID => findUserID.id == userId);
+    // were are getting a request with the parameters a user puts for the .id
+    const usersId = req.params.userId;
 
+    // for every usersId return true when our _id is == to the id user enters
+    const receivedUserId = await getUserById(usersId);
 
-    // If users id == users ID show that user
-    if(getUserID){
-      res.status(200).json(getUserID); // SUCCESS MESSAGE
-    }
-    else{ // Error message
-      res.status(404).json({message: `ID ${userId} not found`}); // ERROR MESSAGE
-    }
+    // Success Message
+    res.status(200).json(receivedUserId);
+
+    debugUser(`Success Got Users's Id: ${usersId} \n`); // Message Appears in terminal
+  }
+  catch (err) {
+    // Error Message
+    res.status(500).json({error: err.stack});
+    debugUser(`Error Finding Users Id: ${usersId} Not Found \n`); // Message Appears in terminal
+  }
 });
 //!!!!!!!!!!!!!!!!!!  SEARCHING BY ID !!!!!!!!!!!!!!!!!!!!!
 
@@ -109,55 +96,44 @@ router.get("/:userId", (req, res) => {   // the :userId   makes a param variable
 
 
 // ++++++++++++++++ ADDING A NEW USER TO THE ARRAY ++++++++++++++++++ http://localhost:5000/api/users/register
-router.post("/register", (req, res) => {
-  const newUser = req.body; // Getting the users data from a form
+router.post("/register", async (req, res) => {
 
-  // If there is not info in any of the fields throw error status. If not continue with adding user
-  if(!newUser){
-    res.status(400).json({message: "Please Enter Information for all Fields"});
-  }
-  else if(!newUser.email){
-    res.status(400).json({message: "Please Enter a Email"});
-  }
-  else if(!newUser.password){
-    res.status(400).json({message: "Please Enter a Password"});
-  }
-  else if(!newUser.fullName){
-    res.status(400).json({message: "Please Enter Your Full Name"});
-  }
-  else if(!newUser.givenName){
-    res.status(400).json({message: "Please Enter Your Given Name"});
-  }
-  else if(!newUser.familyName){
-    res.status(400).json({message: "Please Enter Your Family Name"});
-  }
-  else if(!newUser.role){
-    res.status(400).json({message: "Please Enter Your Role"});
-  }
-  else{
-      // if our new user enters an email that matches an email already entered do error
-      const emailExists = usersArray.find((userEmail) => userEmail.email === newUser.email);
-      if(emailExists){
-        res.status(400).json({message: `User With The Email of ${newUser.email} Already Exists`});
-      }
+  // Getting the users data from the body like a form
+  const newUser = req.body;
+
+  // Adds the users input from the body and plugs it into the addNewUser Function
+  const addingNewUser = await addNewUser(newUser);
 
 
-      // IF we have valid data for a new user do this
-      if(newUser){
+  const emailAlreadyExists = await emailAlreadyExistsCheck(newUser.email);
 
-         // Pushing/Adding our new users data into our usersArray
-        usersArray.push(newUser);
 
-        // This uses the nanoid we imported and the newUser.id attribute in the array will be a random nanoid
-        newUser.id = nanoid()
+  debugUser(`${emailAlreadyExists}`);
+  
+  try {
 
-        // Here we create a new item in the array called usersCreationDate and we set the time it was made at for its value
-        newUser.usersCreationDate = new Date().toDateString();
+    if(emailAlreadyExists){
+      debugUser(`EMAIL EXISTS!!!  \n`); // Message Appears in terminal
+      res.status(200).json({Error: `Email ${addingNewUser.email} Already Exists`});
+      debugUser(`Email ${addingNewUser.email} Already Exists \n`); // Message Appears in terminal
+    }
+    else{
+      res.status(200).json({Error: `yes it is there`});
+      debugUser(`yes it is there \n`); // Message Appears in terminal
+    }
 
-        // Good Message
-        res.status(200).json({message: `Hello ${newUser.fullName}! Glad To Have You`}); // SUCCESS MESSAGE
-      }
   }
+  catch (err) {
+    res.status(500).json({error: err.stack});
+  }
+
+
+
+
+
+
+
+
 });
 // ++++++++++++++++ ADDING A NEW USER TO THE ARRAY ++++++++++++++++++
 
@@ -167,7 +143,7 @@ router.post("/register", (req, res) => {
 
 
 // /////////////// USER LOGIN IN EMAIL & PASSWORD ///////////////// http://localhost:5000/api/users/login
-router.post("/login", (req, res) => {
+router.post("/login", async (req, res) => {
 
   const usersLogin = req.body; // Getting the users data from a form
 
@@ -213,10 +189,10 @@ router.post("/login", (req, res) => {
 
 
 //```````````````````` UPDATE A USER ````````````````````  http://localhost:5000/api/users/ (ID here)
-router.put("/:userId", (req, res) => {
+router.put("/:userId", async (req, res) => {
 
   // This gets the ID from the users input
-  const userId = req.params.userId; // <--- .userId Must equal whatever is in the  router.put("/:WHATEVER IS HERE", (req, res) => {
+  const userId = req.params.userId; // <--- .userId Must equal whatever is in the  router.put(/:WHATEVER IS HERE", (req, res) => {
 
   // Looks for the id user entered to see if its in array
   const currentUser = usersArray.find(currentId => currentId.id == userId);
@@ -261,28 +237,38 @@ else{ // ERROR MESSAGE
 
 
 
-// -------------------- DELETING USER FROM ARRAY -------------------
-router.delete("/:userId", (req, res) => {
+
+
+// -------------------- DELETING USER FROM DATABASE -------------------
+router.delete("/:userId", async (req, res) => {
   //FIXME: DELETE USER AND SEND RESPONSE AS JSON
 
-  
-  // Getting the id from the users URL
-  const userId = req.params.userId;  //<--- .userId Must equal whatever is in the "/:(Whatever is here)"
+
+  // gets the id from the users url
+  const usersId = req.params.userId; 
 
 
-  // Reads the position that a User is in based on the array
-  const usersPositionInArray = usersArray.findIndex(idOfUser => idOfUser.id == userId);
+  try {
+    // Uses the Users id and plugs it into the deleteUser function
+      const deleteTheUser = await deleteUser(usersId);
 
-  // If the the users position in the array is valid .splice it out of its current position in the array
-  if(usersPositionInArray != -1){ 
-    usersArray.splice(usersPositionInArray,1); // this is starting at what item and the amount of items (index, 1 item)
-    res.status(200).json({message: `User ${userId} deleted`}); // Success Message
+      if(deleteTheUser.deletedCount == 1){
+        // Success Message
+        res.status(200).json({message: `User ${usersId} Deleted`});
+        debugUser(`User ${deleteTheUser.fullName} Deleted  \n`); // Message Appears in terminal
+      }
+      else{
+        // Error Message
+        res.status(400).json({error: `User ${usersId} Not Deleted`});
+        debugUser(`User ${usersId} Not Deleted\n`); // Message Appears in terminal
+      }
   }
-  else{
-    res.status(404).json({message: `User ${userId} Not Found`}); // Error Message
+  catch (err) {
+    res.status(500).json({error: err.stack});
   }
+
 });
-// -------------------- DELETING USER FROM ARRAY -------------------
+// -------------------- DELETING USER FROM DATABASE -------------------
 
 
 

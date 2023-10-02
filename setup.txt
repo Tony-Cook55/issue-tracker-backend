@@ -1,0 +1,11 @@
+   THINGS INSTALLED:
+
+    "cookie-parser"
+    "debug"
+    "dotenv"
+    "express"
+    "lodash"
+    "moment"
+    "mongodb"
+    "nanoid"
+    "nodemon"

@@ -17,7 +17,9 @@ To view your application in the web browser run:
 // https://cook-issuetracker-backend.uc.r.appspot.com/
 
 
-// ++++++++++++++ IMPORTS ++++++++++++++++
+
+
+// I I I I I I I    IMPORTS   I I I I I I I
 
 /* eslint-disable no-undef */
 import * as dotenv from "dotenv";
@@ -42,12 +44,15 @@ import { UserRouter } from './routes/api/user.js';
 // THIS IMPORTS OUR bug.js FILE
 import { BugRouter } from './routes/api/bug.js';
 
-// ++++++++++++++ IMPORTS ++++++++++++++++
+// I I I I I I I    IMPORTS   I I I I I I I
 
 
 // THIS LOOKS FOR THE STATIC FILES
 // const __filename = fileURLToPath(import.meta.url);
 // const __dirname = path.dirname(__filename);
+
+
+
 
 
 
