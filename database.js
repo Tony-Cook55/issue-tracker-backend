@@ -58,7 +58,6 @@ async function getAllUsers(){
   // Calling the connect from above method to get the DB
   const dbConnected = await connect();
 
-  // Mongo Shell Command to find all the book: db.books.find()
   // "User" == the collection name in our database
   const allUsers = await dbConnected.collection("User").find().toArray();
 
@@ -89,7 +88,8 @@ async function addNewUser(newUser){
 
 
   // Here we create a new item in the database called usersCreationDate and we set the time it was made at for its value
-  newUser.usersCreationDate = new Date().toDateString();
+  //newUser.usersCreationDate = new Date().toDateString();
+  newUser.usersCreationDate = new Date().toLocaleString('en-US');
 
 
   const addingNewUser = await dbConnected.collection("User").insertOne(newUser);
@@ -97,30 +97,46 @@ async function addNewUser(newUser){
 
   return addingNewUser;
 }
-
-
-async function emailAlreadyExistsCheck(usersEmailInput){
-
-  const dbConnected = await connect();
-
-  const emailAlreadyExists = await dbConnected.collection("User").findOne({email: usersEmailInput.email});
-
-  return emailAlreadyExists;
-}
-
-
 // +++++++++++++++++ ADDING A NEW USER +++++++++++++++++ //
 
 
 
 
 
+// LLLLLLLLLLLLLLLLLLL USERS LOGIN LLLLLLLLLLLLLLLLLLL // 
+async function loginUser(userLogin){
+
+  const dbConnected = await connect();
+
+  // Finding a user based on their email entered
+  const userLoggedIn = await dbConnected.collection("User").findOne({email: userLogin.email});
+
+  // It will either find or not find the user based on the inputs
+  return userLoggedIn;
+
+}
+// LLLLLLLLLLLLLLLLLLL USERS LOGIN LLLLLLLLLLLLLLLLLLL // 
 
 
 
 
 
+// uuuuuuuuuuuuuuuuu UPDATE A USER uuuuuuuuuuuuuuuuu //
+async function updateUser(usersId, updatedUserFields){
 
+  const dbConnected = await connect();
+
+
+  // Here we create a new item in the Database called lastUpdated and we set the time it was made at for its value
+  updatedUserFields.lastUpdated = new Date().toLocaleString('en-US');
+
+
+  // gets the inputted id and the input for all the fields due to the:  ... gets all the values from the fields
+  const userUpdated = await dbConnected.collection("User").updateOne({_id: new ObjectId(usersId)},{$set:{...updatedUserFields}});
+
+  return userUpdated;
+}
+// uuuuuuuuuuuuuuuuu UPDATE A USER uuuuuuuuuuuuuuuuu //
 
 
 
@@ -138,6 +154,21 @@ async function deleteUser(usersId){
 }
 // ------------------ DELETE USER BY ID ------------------ //
 
+
+
+  // ******** USERS EXPORTS ******** //
+export{ 
+  getAllUsers,
+  getUserById,
+  addNewUser,
+  loginUser,
+  updateUser,
+  deleteUser
+};
+  // ******** USERS EXPORTS ******** //
+
+
+
 // ******************************* USERS ********************************** //
 
 
@@ -148,25 +179,137 @@ async function deleteUser(usersId){
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! BUGS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! //
+
+// ~~~~~~~~~~~~~~~~ FIND ALL BUGS ~~~~~~~~~~~~~~~~ //
+async function getAllBugs(){
+  // Calling the connect from above method to get the DB
+  const dbConnected = await connect();
+
+  // "User" == the collection name in our database
+  const allBugs = await dbConnected.collection("Bug").find().toArray();
+
+  //Returns Books to postman
+  return allBugs;
+}
+// ~~~~~~~~~~~~~~~~ FIND ALL BUGS ~~~~~~~~~~~~~~~~ //
+
+
+
+
+// !!!!!!!!!!!!!!! SEARCHING FOR A BUG BY ID !!!!!!!!!!!!!!! //
+async function getBugById(bugsId){
+  const dbConnected = await connect();
+                                       // Uses this call in:  import { ObjectId } from "mongodb";
+  const findBugById = await dbConnected.collection("Bug").findOne({_id: new ObjectId(bugsId)});
+
+  return findBugById;
+}
+// !!!!!!!!!!!!!!! SEARCHING FOR A BUG BY ID !!!!!!!!!!!!!!! //
+
+
+
+// +++++++++++++++++ ADDING A NEW BUG +++++++++++++++++ //
+async function addNewBug(newBug){
+  const dbConnected = await connect();
+
+
+  // Here we create a new item in the database called usersCreationDate and we set the time it was made at for its value
+  //newUser.usersCreationDate = new Date().toDateString();
+  newBug.usersCreationDate = new Date().toLocaleString('en-US');
+
+
+  const addingNewBug = await dbConnected.collection("Bug").insertOne(newBug);
+
+
+  return addingNewBug;
+}
+// +++++++++++++++++ ADDING A NEW BUG +++++++++++++++++ //
+
+
+
+// uuuuuuuuuuuuuuuuu UPDATE A BUG uuuuuuuuuuuuuuuuu //
+async function updateBug(bugsId, updateBugFields){
+
+  const dbConnected = await connect();
+
+
+  // Here we create a new item in the Database called lastUpdated and we set the time it was made at for its value
+  updateBugFields.lastUpdated = new Date().toLocaleString('en-US');
+
+
+  // gets the inputted id and the input for all the fields due to the:  ... gets all the values from the fields
+  const bugUpdated = await dbConnected.collection("Bug").updateOne({_id: new ObjectId(bugsId)},{$set:{...updateBugFields}});
+
+  return bugUpdated;
+}
+// uuuuuuuuuuuuuuuuu UPDATE A BUG uuuuuuuuuuuuuuuuu //
+
+
+
+
+
+
+// ~~~~~~~~~~~~~~~~~~~ CLASSIFY A BUG ~~~~~~~~~~~~~~~~~~~ //
+async function updateClassification(bugsId, classifyBugFields){
+
+  const dbConnected = await connect();
+
+
+  // Here we create a new item in the Database called lastUpdated and we set the time it was made at for its value
+  classifyBugFields.lastUpdated = new Date().toLocaleString('en-US');
+
+  //This will create a new item called 
+  classifyBugFields.classifiedOn = new Date().toLocaleString('en-US');
+
+  // gets the inputted id and the input for all the fields due to the:  ... gets all the values from the fields
+  const bugClassificationUpdated = await dbConnected.collection("Bug").updateOne({_id: new ObjectId(bugsId)},{$set:{...classifyBugFields}});
+
+  return bugClassificationUpdated;
+}
+// ~~~~~~~~~~~~~~~~~~~ CLASSIFY A BUG ~~~~~~~~~~~~~~~~~~~ //
+
+
+
+
+
+
+
+  // !!!!!! BUGS EXPORTS !!!!!!!! //
+export{
+  getAllBugs,
+  getBugById,
+  addNewBug,
+  updateBug,
+  updateClassification,
+
+};
+
+  // !!!!!! BUGS EXPORTS !!!!!!!! //
+
+// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! BUGS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! //
+
+
+
+
+
+
 // export functions
 export {
   newId,
   connect,
-  ping,
-
-
-  // ******** USERS EXPORTS ******* //
-  getAllUsers,
-  getUserById,
-  addNewUser,
-
-  emailAlreadyExistsCheck,
-
-
-
-  deleteUser
-
-  // ******** USERS EXPORTS ******* //
+  ping
 };
 
 // test the database connection

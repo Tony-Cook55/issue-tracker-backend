@@ -12,6 +12,12 @@ const debugBug = debug("app:BugRouter");
 // IMPORTS NANOID
 import { customAlphabet } from 'nanoid'
 const nanoid = customAlphabet('1234567890abcdef', 10)
+
+
+// Imports all the functions from the database.js file to CRUD Users
+import { connect, getAllBugs, getBugById, addNewBug, updateBug, updateClassification } from "../../database.js";
+
+
 // I I I I I I I    IMPORTS   I I I I I I I
 
 
@@ -19,77 +25,60 @@ const nanoid = customAlphabet('1234567890abcdef', 10)
 router.use(express.urlencoded({extended:false}));
 
 
-const bugsArray = [
-  {
-    "title": "Computer on fire",
-    "description": "Fire spewing out of my Computer",
-    "stepsToReproduce": "Throw Molotov on Computer",
-    "classification": "",
-    "classifiedOn": "",
-    "id": "1",
-    "bugsCreationDate": "",
-    "lastUpdated": "",
-  },
-  {
-    "title": "Fans not working",
-    "description": "Pc's fans not spinning",
-    "stepsToReproduce": "Start Pc, No Fans Spin",
-    "classification": "",
-    "classifiedOn": "",
-    "id": "2",
-    "bugsCreationDate": "",
-    "lastUpdated": "",
-  },
-  {
-    "title": "Pc explodes upon starting",
-    "description": "Once on button is clicked Pc blows up",
-    "stepsToReproduce": "Can only replicate once cause it exploded",
-    "classification": "",
-    "classifiedOn": "",
-    "id": "3",
-    "bugsCreationDate": "",
-    "lastUpdated": "",
-  },
-  {
-    "title": "Mouse is hot",
-    "description": "My mouse is hot to the touch",
-    "stepsToReproduce": "Put mouse in microwave, Touch mouse",
-    "classification": "",
-    "classifiedOn": "",
-    "id": "4",
-    "bugsCreationDate": "",
-    "lastUpdated": "",
-  },
-];
 
 
 
-// GETS THE LIST OF ALL BUGS FROM THE bugsArray    http://localhost:5000/api/bugs/list
-router.get("/list", (req, res) => {
-  debugBug("Bug List Route Hit");
-  res.json(bugsArray);
+
+// ~~~~~~~~~~~~~~~~ FIND ALL BUGS ~~~~~~~~~~~~~~~~ //    http://localhost:5000/api/bugs/list
+router.get("/list", async (req, res) => {
+  try {
+
+    // Calls in the getAllBugs() Function from database.js finding all the Bugs
+    const allBugs = await getAllBugs();
+
+    // Success Message
+    res.status(200).json(allBugs);
+
+    debugBug("Success! Found All Bugs\n"); // Message Appears in terminal
+  }
+  catch (err) { // Error Message
+    res.status(500).json({error: err.stack});
+  }
 });
-// GETS THE LIST OF ALL BUGS FROM THE bugsArray
+// ~~~~~~~~~~~~~~~~ FIND ALL BUGS ~~~~~~~~~~~~~~~~ //
 
 
 
 
 
 //!!!!!!!!!!!!!!!!!!  SEARCHING BY ID !!!!!!!!!!!!!!!!   http://localhost:5000/api/bugs/ (id of User)
-router.get("/:bugId", (req, res) => {
+router.get("/:bugId", async (req, res) => {
 
-  //READS THE bugId from the URL and stores it in a variable
-  const bugId = req.params.bugId;
+  try {
+    // Connects to the DB Using the connect Function
+    const dbConnected = await connect();
 
-  // This finds the input the user put and if it matches an ID it will get it and display
-  const getBugsId = bugsArray.find(findBugsId => findBugsId.id == bugId);
+    // were are getting a request with the parameters a user puts for the .id
+    const bugsId = req.params.bugId;
 
-  // If we get the bugs id show it
-  if(getBugsId){
-    res.status(200).json(getBugsId); // SUCCESS MESSAGE
+    // for every bugsId return true when our _id is == to the id user enters
+    const receivedBugId = await getBugById(bugsId);
+
+    if(receivedBugId){
+      // Success Message
+      res.status(200).json(receivedBugId);
+      debugBug(`Success Got Bugs Id: ${bugsId} \n`); // Message Appears in terminal
+    }
+    else{
+      // Error Message
+      res.status(404).json(`Bug ${bugsId} Not Found`);
+      debugBug(`Bug ${bugsId} Not Found\n`); // Message Appears in terminal
+    }
+    
   }
-  else{ // Error message
-    res.status(404).json({message: `Bug ${bugId} not found`}); // ERROR MESSAGE
+  catch (err) {
+    // Error Message
+    res.status(500).json({error: err.stack});
   }
 
 });
@@ -102,46 +91,50 @@ router.get("/:bugId", (req, res) => {
 
 
 // ++++++++++++++++ ADDING A NEW BUG TO THE ARRAY ++++++++++++++++++   http://localhost:5000/api/bugs/new
-router.post("/new", (req, res) => {
+router.post("/new", async (req, res) => {
 
-  const newBug = req.body; // Getting the new Bugs data from the body form
-
-
-  // If there is not info in any of these fields throw error status. If not continue with adding Bug
-  if(!newBug.title && !newBug.description && !newBug.stepsToReproduce){
-    res.status(400).json({message: "Please enter data for all fields"});
-  }
-  else if(!newBug.title){
-    res.status(400).json({message: "Please enter data for the bugs Title"});
-  }
-  else if(!newBug.description){
-    res.status(400).json({message: "Please enter data for the bugs Description"});
-  }
-  else if(!newBug.stepsToReproduce){
-    res.status(400).json({message: "Please enter data for the bugs Reproduction Steps"});
-  }
-
-  else{
-
-      // IF we have valid data for a new Bug do this and ADD it to array
-      if(newBug){
-
-        // This uses the nanoid we imported and the newUser.id attribute in the array will be a random nanoid
-        newBug.id = nanoid();
-
-        // Here we create a new item in the array called bugsCreationDate and we set the time it was made at for its value
-        newBug.bugsCreationDate = new Date().toDateString();
+    // Getting the users data from the body like a form
+    const newBug = req.body;
 
 
-        // Pushing/Adding our new Bugs fields into our bugsArray
-        bugsArray.push(newBug); // pushes newBug info
+    // If there is not info in any of these fields throw error status. If not continue with adding Bug
+    if(!newBug.title && !newBug.description && !newBug.stepsToReproduce){
+      res.status(400).json({message: "Please enter data for all fields"});
+    }
+    else if(!newBug.title){
+      res.status(400).json({message: "Please enter data for the bugs Title"});
+    }
+    else if(!newBug.description){
+      res.status(400).json({message: "Please enter data for the bugs Description"});
+    }
+    else if(!newBug.stepsToReproduce){
+      res.status(400).json({message: "Please enter data for the bugs Reproduction Steps"});
+    }
+    else{  // !!!!!! SUCCESS !!!!!!
+      try { // IF we have valid data for a new user do this
+
+          // ACTUALLY ADDS THE USERS INPUT HERE
+            // Adds the users input from the body and plugs it into the addNewBug Function
+            const addingNewBug = await addNewBug(newBug);
+          // ACTUALLY ADDS THE USERS INPUT HERE
 
 
-        // Good Message
-        res.status(200).json({message: `The New Bug ${newBug.title} Has Been Successfully Reported`}); // SUCCESS MESSAGE
+        // If user adding a New Bug is true it will be known as acknowledged
+        if(addingNewBug.acknowledged == true){
+          // Success Message
+          res.status(200).json({message: `Bug ${newBug.title} Added With An Id of ${addingNewBug.insertedId}`});
+          debugBug(`Bug ${newBug.title}  Added With An Id of ${addingNewBug.insertedId} \n`); // Message Appears in terminal
+        }
+        else{
+          // Error Message
+          res.status(400).json({error: `Bug ${newBug.title} Not Added`});
+          debugBug(`Bug ${newBug.title} Not Added  \n`); // Message Appears in terminal
+        }
       }
-  }
-
+      catch (err) {
+        res.status(500).json({error: err.stack});
+      }
+    }
 });
 // ++++++++++++++++ ADDING A NEW BUG TO THE ARRAY ++++++++++++++++++
 
@@ -151,47 +144,38 @@ router.post("/new", (req, res) => {
 
 
 
+
 //```````````````````` UPDATE A BUG ````````````````````  http://localhost:5000/api/bugs/ (ID here)
-
-router.put("/:bugId", (req, res) => {
-
-  //GETS the users input for the bugs id from the url
-  const bugsId = req.params.bugId;
-
-  // Looks for the id user entered to see if its in array
-  const currentBug = bugsArray.find(currentBugId => currentBugId.id == bugsId);
-
-  // For this line to work you have to have the body parser thats up top MIDDLEWARE
-  const updatedBug = req.body;  // An .body is an object lets our body read the Bugs id
-  // .body holds all the information/fields the user enters
+router.put("/:bugId", async (req, res) => {
 
 
-
-  // If currentBug is true go through update process
-  if(currentBug){
-    for(const key in updatedBug){  // loops through the keys in the updated Bug (title, description, stepsToReproduce.)
-      if(currentBug[key] != updatedBug[key]){ // if the current Users key(title for ex.) is not == to the updated Bug
-        currentBug[key] = updatedBug[key]; // go ahead and update it
+    // This gets the ID from the users input
+    const bugsId = req.params.bugId; // <--- .bugsId Must equal whatever is in the  router.put(/:WHATEVER IS HERE", (req, res) => {
+  
+    // For this line to work you have to have the body parser thats up top MIDDLEWARE
+    const updatedBugFields = req.body;  // An .body is an object in updatedBug lets our body read the users id
+    // .body holds all the information/fields the user enters 
+  
+  
+    try {
+      // Calls the function and uses the users entered id and body params for the values to pass into function
+      const bugUpdated = await updateBug(bugsId, updatedBugFields);
+  
+      // If the book is updated once it will gain a property called modifiedCount if this is 1 its true
+      if(bugUpdated.modifiedCount == 1){
+        // Success Message
+        res.status(200).json({message: `Bug ${bugsId} updated`}); // Success Message
+        debugBug(`Bug ${bugsId} Updated`);
       }
+      else{
+        // Error Message
+        res.status(400).json({error: `Bug ${bugsId} Not Found`});
+        debugBug(`Bug ${bugsId} Not Found  \n`); // Message Appears in terminal
+      }     
+    } 
+    catch (err) {
+      res.status(500).json({error: err.stack});
     }
-
-
-    // We will save the current Bug back into the array
-    const bugsPositionInArray = bugsArray.findIndex(currentBugId => currentBugId.id == bugsId);
-    if(bugsPositionInArray != -1){
-      bugsArray[bugsPositionInArray] = currentBug; // saving Users data back into the array
-
-      // Here we create a new item in the array called lastUpdated and we set the time it was made at for its value
-      currentBug.lastUpdated = new Date().toDateString();
-    }
-
-    res.status(200).json({message: `Bug ${bugsId} updated`}); // Success Message
-
-}
-else{ // ERROR MESSAGE
-  res.status(404).json({message: `Bug ${bugsId} not found.`});
-}
-
 
 });
 //```````````````````` UPDATE A BUG ````````````````````
@@ -202,7 +186,7 @@ else{ // ERROR MESSAGE
 
 
 // ~~~~~~~~~~~~~~~~~~~ CLASSIFY A BUG ~~~~~~~~~~~~~~~~~~~  http://localhost:5000/api/bugs/classify/(ID here)/
-router.put("/:bugId/classify", (req,res) => {
+router.put("/:bugId/classify", async (req,res) => {
 
   //GETS the users input for the bugs id from the url
   const bugsId = req.params.bugId;
@@ -211,48 +195,29 @@ router.put("/:bugId/classify", (req,res) => {
   const currentBug = bugsArray.find(currentBugId => currentBugId.id == bugsId);
 
   // For this line to work you have to have the body parser thats up top MIDDLEWARE
-  const classifyBug = req.body;  // An .body is an object lets our body read the Bugs id
+  const classifyBugFields = req.body;  // An .body is an object lets our body read the Bugs id
   // .body holds all the information/fields the user enters
 
-
-
-
-  // If ID inputted is wrong
-  if(!currentBug){ // ERROR MESSAGE
-    res.status(404).json({message: `Bug ${bugsId} not found.`});
-  }
-
-  // If there is no input in the body field for the classification throw this error
-  if(!classifyBug.classification){
-    res.status(404).json({message: `Please Enter a Classification`});
-  }
-
-
-  // If currentBug is true go through update process
-  if(classifyBug){
-      for(const key in classifyBug){  // loops through the keys in the updated Bug (classification)
-        if(currentBug[key] != classifyBug[key]){ // if the current Users key(classification for ex.) is not == to the updated Bug
-          currentBug[key] = classifyBug[key]; // go ahead and update it
+    // asdasdasdasdasd FIXME: CHANGE ALL OF THE THINGS BELOW TO WORK 
+      try {
+        // Calls the function and uses the users entered id and body params for the values to pass into function
+        const bugUpdated = await updateBug(bugsId, updatedBugFields);
+    
+        // If the book is updated once it will gain a property called modifiedCount if this is 1 its true
+        if(bugUpdated.modifiedCount == 1){
+          // Success Message
+          res.status(200).json({message: `Bug ${bugsId} updated`}); // Success Message
+          debugBug(`Bug ${bugsId} Updated`);
         }
+        else{
+          // Error Message
+          res.status(400).json({error: `Bug ${bugsId} Not Found`});
+          debugBug(`Bug ${bugsId} Not Found  \n`); // Message Appears in terminal
+        }     
+      } 
+      catch (err) {
+        res.status(500).json({error: err.stack});
       }
-
-
-      // We will save the current Bug back into the array
-      const bugsPositionInArray = bugsArray.findIndex(currentBugId => currentBugId.id == bugsId);
-      if(bugsPositionInArray != -1){
-        bugsArray[bugsPositionInArray] = currentBug; // saving Users data back into the array
-
-
-        // Create and set the date this bug is classifiedOn
-        currentBug.classifiedOn = new Date().toDateString();
-
-        // Here we create a new item in the array called lastUpdated and we set the time it was made at for its value
-        currentBug.lastUpdated = new Date().toDateString();
-      }
-
-      res.status(200).json({message: `Bug Classified`}); // Success Message
-
-  }
 });
 // ~~~~~~~~~~~~~~~~~~~ CLASSIFY A BUG ~~~~~~~~~~~~~~~~~~~
 
@@ -264,7 +229,7 @@ router.put("/:bugId/classify", (req,res) => {
 
 
 // ^^^^^^^^^^^^^^^^^^ ASSIGN A BUG ^^^^^^^^^^^^^^^^^^
-router.put("/:bugId/assign", (req,res) => {
+router.put("/:bugId/assign", async (req,res) => {
 
   //GETS the users input for the bugs id from the url
   const bugsId = req.params.bugId;
