@@ -94,7 +94,7 @@ router.get("/:userId", async (req, res) => {   // the :userId   makes a param va
 
 
 
-// ++++++++++++++++ ADDING A NEW USER TO THE ARRAY ++++++++++++++++++ http://localhost:5000/api/users/register
+// ++++++++++++++++ ADDING A NEW USER TO THE DATABASE ++++++++++++++++++ http://localhost:5000/api/users/register
 router.post("/register", async (req, res) => {
 
   // Getting the users data from the body like a form
@@ -165,7 +165,7 @@ router.post("/register", async (req, res) => {
       }
       }
 });
-// ++++++++++++++++ ADDING A NEW USER TO THE ARRAY ++++++++++++++++++
+// ++++++++++++++++ ADDING A NEW USER TO THE DATABASE ++++++++++++++++++
 
 
 
@@ -227,11 +227,11 @@ router.post("/login", async (req, res) => {
           debugUser(`User ${usersLoggedIn.fullName} Not Found`); // Message Appears in terminal
         }
       }
-  } 
+  }
   catch (err) {
     res.status(500).json({error: err.stack});
   }
-  
+
 });
 // /////////////// USER LOGIN WITH EMAIL & PASSWORD /////////////////
 
@@ -244,15 +244,15 @@ router.post("/login", async (req, res) => {
 
 
 
-//```````````````````` UPDATE A USER ````````````````````  http://localhost:5000/api/users/ (ID here)
+// uuuuuuuuuuuuuuuuu UPDATE A USER uuuuuuuuuuuuuuuuu  http://localhost:5000/api/users/ (ID here)
 router.put("/:userId", async (req, res) => {
 
   // This gets the ID from the users input
-  const userId = req.params.userId; // <--- .userId Must equal whatever is in the  router.put(/:WHATEVER IS HERE", (req, res) => {
+  const userId = req.params.userId;
 
   // For this line to work you have to have the body parser thats up top MIDDLEWARE
-  const updatedUserFields = req.body;  // An .body is an object in updatedBook lets our body read the users id
-  // .body holds all the information/fields the user enters 
+  const updatedUserFields = req.body;  // An .body is an object in updatedBug lets our body read the users id
+  // .body holds all the information/fields the user enters
 
 
   // If the user inputs a password into the field we are going to make a new hash for it
@@ -269,7 +269,7 @@ router.put("/:userId", async (req, res) => {
     // Calls the function and uses the users entered id and body params for the values to pass into function
     const userUpdated = await updateUser(userId, updatedUserFields);
 
-    // If the book is updated once it will gain a property called modifiedCount if this is 1 its true
+    // If the User is updated once it will gain a property called modifiedCount if this is 1 its true
     if(userUpdated.modifiedCount == 1){
       // Success Message
       res.status(200).json({message: `User ${userId} updated`}); // Success Message
@@ -279,13 +279,13 @@ router.put("/:userId", async (req, res) => {
       // Error Message
       res.status(400).json({error: `User ${userId} Not Found`});
       debugUser(`User ${userId} Not Found  \n`); // Message Appears in terminal
-    }     
-  } 
+    }
+  }
   catch (err) {
     res.status(500).json({error: err.stack});
   }
 });
-//```````````````````` UPDATE A USER ```````````````````` 
+// uuuuuuuuuuuuuuuuu UPDATE A USER uuuuuuuuuuuuuuuuu
 
 
 
@@ -297,7 +297,7 @@ router.put("/:userId", async (req, res) => {
 router.delete("/:userId", async (req, res) => {
 
   // gets the id from the users url
-  const usersId = req.params.userId; 
+  const usersId = req.params.userId;
 
 
   try {
@@ -306,13 +306,13 @@ router.delete("/:userId", async (req, res) => {
 
       if(deleteTheUser.deletedCount == 1){
         // Success Message
-        res.status(200).json({message: `User ${usersId} Deleted`});
-        debugUser(`User ${usersId} Deleted  \n`); // Message Appears in terminal
+        res.status(200).json({message: `User ${usersId} Deleted`, usersId});
+        debugUser(`User ${usersId} Deleted\n`, usersId); // Message Appears in terminal
       }
       else{
         // Error Message
-        res.status(400).json({error: `User ${usersId} Not Deleted`});
-        debugUser(`User ${usersId} Not Deleted\n`); // Message Appears in terminal
+        res.status(404).json({error: `User ${usersId} Not Found`});
+        debugUser(`User ${usersId} Not Found\n`); // Message Appears in terminal
       }
   }
   catch (err) {

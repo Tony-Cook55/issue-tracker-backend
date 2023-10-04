@@ -45,11 +45,6 @@ async function ping() {
 
 
 
-
-
-
-
-
 // ******************************* USERS ********************************** //
 
 
@@ -61,7 +56,7 @@ async function getAllUsers(){
   // "User" == the collection name in our database
   const allUsers = await dbConnected.collection("User").find().toArray();
 
-  //Returns Books to postman
+  //Returns All Users to postman
   return allUsers;
 }
 // ~~~~~~~~~~~~~~~~ FIND ALL USERS ~~~~~~~~~~~~~~~~ //
@@ -103,7 +98,7 @@ async function addNewUser(newUser){
 
 
 
-// LLLLLLLLLLLLLLLLLLL USERS LOGIN LLLLLLLLLLLLLLLLLLL // 
+// LLLLLLLLLLLLLLLLLLL USERS LOGIN LLLLLLLLLLLLLLLLLLL //
 async function loginUser(userLogin){
 
   const dbConnected = await connect();
@@ -115,7 +110,7 @@ async function loginUser(userLogin){
   return userLoggedIn;
 
 }
-// LLLLLLLLLLLLLLLLLLL USERS LOGIN LLLLLLLLLLLLLLLLLLL // 
+// LLLLLLLLLLLLLLLLLLL USERS LOGIN LLLLLLLLLLLLLLLLLLL //
 
 
 
@@ -157,7 +152,7 @@ async function deleteUser(usersId){
 
 
   // ******** USERS EXPORTS ******** //
-export{ 
+export{
   getAllUsers,
   getUserById,
   addNewUser,
@@ -200,7 +195,7 @@ async function getAllBugs(){
   // "User" == the collection name in our database
   const allBugs = await dbConnected.collection("Bug").find().toArray();
 
-  //Returns Books to postman
+  //Returns All Bugs to postman
   return allBugs;
 }
 // ~~~~~~~~~~~~~~~~ FIND ALL BUGS ~~~~~~~~~~~~~~~~ //
@@ -259,9 +254,7 @@ async function updateBug(bugsId, updateBugFields){
 
 
 
-
-
-// ~~~~~~~~~~~~~~~~~~~ CLASSIFY A BUG ~~~~~~~~~~~~~~~~~~~ //
+// ccccccccccccccccc CLASSIFY A BUG ccccccccccccccccc // approved, unapproved, duplicate, by default unclassified
 async function updateClassification(bugsId, classifyBugFields){
 
   const dbConnected = await connect();
@@ -270,7 +263,7 @@ async function updateClassification(bugsId, classifyBugFields){
   // Here we create a new item in the Database called lastUpdated and we set the time it was made at for its value
   classifyBugFields.lastUpdated = new Date().toLocaleString('en-US');
 
-  //This will create a new item called 
+  //This will create a new item called classifiedOn which sets the current date its classified on
   classifyBugFields.classifiedOn = new Date().toLocaleString('en-US');
 
   // gets the inputted id and the input for all the fields due to the:  ... gets all the values from the fields
@@ -278,8 +271,52 @@ async function updateClassification(bugsId, classifyBugFields){
 
   return bugClassificationUpdated;
 }
-// ~~~~~~~~~~~~~~~~~~~ CLASSIFY A BUG ~~~~~~~~~~~~~~~~~~~ //
+// ccccccccccccccccc CLASSIFY A BUG ccccccccccccccccc //
 
+
+
+
+// aaaaaaaaaaaaaaaaaa ASSIGN A BUG aaaaaaaaaaaaaaaaaa
+async function assignBugToUser(bugsId, assignedBugFields){
+
+  const dbConnected = await connect();
+
+  // Here we create a new item in the Database called lastUpdated and we set the time it was made at for its value
+  assignedBugFields.lastUpdated = new Date().toLocaleString('en-US');
+
+  //This will create a new item called assignedOn which sets the current date its classified on
+  assignedBugFields.assignedOn = new Date().toLocaleString('en-US');
+
+
+  // gets the inputted id and the input for all the fields due to the:  ... gets all the values from the fields
+  const bugAssigned = await dbConnected.collection("Bug").updateOne({_id: new ObjectId(bugsId)},{$set:{...assignedBugFields}});
+
+  return bugAssigned;
+}
+// aaaaaaaaaaaaaaaaaa ASSIGN A BUG aaaaaaaaaaaaaaaaaa //
+
+
+
+
+
+// xxxxxxxxxxxxxx CLOSING A BUG xxxxxxxxxxxxxx
+async function closeBug(bugsId, closedFields){
+
+  const dbConnected = await connect();
+
+  // Here we create a new item in the Database called lastUpdated and we set the time it was made at for its value
+  closedFields.lastUpdated = new Date().toLocaleString('en-US');
+
+  //This will create a new item called assignedOn which sets the current date its classified on
+  closedFields.closedOn = new Date().toLocaleString('en-US');
+
+
+  // gets the inputted id and the input for all the fields due to the:  ... gets all the values from the fields
+  const bugClosed = await dbConnected.collection("Bug").updateOne({_id: new ObjectId(bugsId)},{$set:{...closedFields}});
+
+  return bugClosed;
+}
+// xxxxxxxxxxxxxx CLOSING A BUG xxxxxxxxxxxxxx //
 
 
 
@@ -293,7 +330,8 @@ export{
   addNewBug,
   updateBug,
   updateClassification,
-
+  assignBugToUser,
+  closeBug
 };
 
   // !!!!!! BUGS EXPORTS !!!!!!!! //
