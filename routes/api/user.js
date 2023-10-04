@@ -47,7 +47,7 @@ router.get("/list", async (req, res) => {
     debugUser("Success! Found All The Users\n"); // Message Appears in terminal
   }
   catch (err) { // Error Message
-    res.status(500).json({error: err.stack});
+    res.status(500).json({Error: err.stack});
   }
 });
 // ~~~~~~~~~~~~~~~~ FIND ALL USERS ~~~~~~~~~~~~~~~~ //
@@ -72,7 +72,7 @@ router.get("/:userId", async (req, res) => {   // the :userId   makes a param va
     if(receivedUserId){
       // Success Message
       res.status(200).json(receivedUserId);
-      debugUser(`Success Got Users's Id: ${usersId} \n`); // Message Appears in terminal
+      debugUser(`Success, Got "${receivedUserId.fullName}" Id: ${usersId}\n`); // Message Appears in terminal
     }
     else{
       // Error Message
@@ -82,7 +82,7 @@ router.get("/:userId", async (req, res) => {   // the :userId   makes a param va
   }
   catch (err) {
     // Error Message
-    res.status(500).json({error: err.stack});
+    res.status(500).json({Error: err.stack});
   }
 });
 //!!!!!!!!!!!!!!!!!!  SEARCHING BY ID !!!!!!!!!!!!!!!!!!!!!
@@ -115,22 +115,22 @@ router.post("/register", async (req, res) => {
       res.status(400).json({Error: "Please Enter Information for all Fields"});
     }
     else if(!newUser.email){
-      res.status(400).json({Error: "Please Enter a Email"});
+      res.status(400).json({Email_Error: "Please Enter a Email"});
     }
     else if(!newUser.password){
-      res.status(400).json({Error: "Please Enter a Password"});
+      res.status(400).json({Password_Error: "Please Enter a Password"});
     }
     else if(!newUser.fullName){
-      res.status(400).json({Error: "Please Enter Your Full Name"});
+      res.status(400).json({Full_Name_Error: "Please Enter Your Full Name"});
     }
     else if(!newUser.givenName){
-      res.status(400).json({Error: "Please Enter Your Given Name"});
+      res.status(400).json({Given_Name_Error: "Please Enter Your Given Name"});
     }
     else if(!newUser.familyName){
-      res.status(400).json({Error: "Please Enter Your Family Name"});
+      res.status(400).json({Family_Name_Error: "Please Enter Your Family Name"});
     }
     else if(!newUser.role){
-      res.status(400).json({Error: "Please Enter Your Role"});
+      res.status(400).json({Role_Error: "Please Enter Your Role"});
     }
     else{  // !!!!!! SUCCESS !!!!!!
       try { // IF we have valid data for a new user do this
@@ -151,17 +151,17 @@ router.post("/register", async (req, res) => {
         // If user adding a new User is true it will be known as acknowledged
         if(addingNewUser.acknowledged == true){
           // Success Message
-          res.status(200).json({message: `User ${newUser.fullName} Added With An Id of ${addingNewUser.insertedId}`});
-          debugUser(`User ${newUser.fullName}  Added With An Id of ${addingNewUser.insertedId} \n`); // Message Appears in terminal
+          res.status(200).json({User_Added: `User ${newUser.fullName} Added With An Id of ${addingNewUser.insertedId}`});
+          debugUser(`User ${newUser.fullName} Added With An Id of ${addingNewUser.insertedId} \n`); // Message Appears in terminal
         }
         else{
           // Error Message
-          res.status(400).json({error: `User ${newUser.fullName} Not Added`});
+          res.status(400).json({Error: `User ${newUser.fullName} Not Added`});
           debugUser(`User ${newUser.fullName} Not Added  \n`); // Message Appears in terminal
         }
       }
       catch (err) {
-        res.status(500).json({error: err.stack});
+        res.status(500).json({Error: err.stack});
       }
       }
 });
@@ -186,13 +186,13 @@ router.post("/login", async (req, res) => {
   try {
       // If there is not info in any of the fields or in either email or password throw error status.
       if(!usersLoginInformation){
-        res.status(400).json({message: "Please Enter Your Login Credentials."});
+        res.status(400).json({Error: "Please Enter Your Login Credentials."});
       }
       else if(!usersLoginInformation.email){
-        res.status(400).json({message: "Please Enter Your Email."});
+        res.status(400).json({Email_Error: "Please Enter Your Email."});
       }
       else if(!usersLoginInformation.password){
-        res.status(400).json({message: "Please Enter Your Password."});
+        res.status(400).json({Password_Error: "Please Enter Your Password."});
       }
       else{
         // If our Database find finds the usersLoginInformation entered has the email and password set them to const variables
@@ -202,13 +202,13 @@ router.post("/login", async (req, res) => {
 
         // If the email and password entered DO NOT MATCH anything in the Database from above throw error
         if(!emailMatches && !passwordMatches){
-          res.status(404).json({message: `Invalid login credential provided. Please try again.`});
+          res.status(400).json({Error: `Invalid login credential provided. Please try again.`});
         }
         if(!emailMatches){ // If just email doesn't match
-          res.status(404).json({message: `Invalid Email. Please Re-Enter Email.`});
+          res.status(400).json({Error: `Invalid Email. Please Re-Enter Email.`});
         }
         else if(!passwordMatches){ // If just password doesn't match
-          res.status(404).json({message: `Invalid Password. Please Re-Enter Password.`});
+          res.status(400).json({Error: `Invalid Password. Please Re-Enter Password.`});
         }
 
 
@@ -218,18 +218,18 @@ router.post("/login", async (req, res) => {
         // If the entered password is the same as the password thats encrypted in database == Success
         if(usersLoggedIn && await bcrypt.compare(usersLoginInformation.password, usersLoggedIn.password)){
           // Success Message
-          res.status(200).json(`Welcome ${usersLoggedIn.fullName} You Are Successfully Logged In`);
+          res.status(200).json({Welcome_Back: `Welcome ${usersLoggedIn.fullName} You Are Successfully Logged In`});
           debugUser(`Welcome ${usersLoggedIn.fullName} You Are Successfully Logged In`); // Message Appears in terminal
         }
         else{
           //Error
-          res.status(400).json(`User Not Found`);
+          res.status(400).json({Error: `User Not Found`});
           debugUser(`User ${usersLoggedIn.fullName} Not Found`); // Message Appears in terminal
         }
       }
   }
   catch (err) {
-    res.status(500).json({error: err.stack});
+    res.status(500).json({Error: err.stack});
   }
 
 });
@@ -266,23 +266,42 @@ router.put("/:userId", async (req, res) => {
 
 
   try {
+              // ------ CHANGES MADE ------ //    Ill be honest I tried to implement this my self but couldn't so this is ChatGBT
+                // This is an empty array to store the changes the user makes
+                const changesMadeByUserArray = [];
+
+                // Retrieve the original user data from our database using same code from Get All Users
+                const originalUsersData = await getAllUsers(userId);
+
+                  // Compare the fields user enters to the original fields in getAllUsers()
+                  for (const key in updatedUserFields) {
+                    if (originalUsersData[key] !== updatedUserFields[key]) {
+                      changesMadeByUserArray.push(key);
+                    }
+                  }
+                // ------ CHANGES MADE ------ //
+
+
     // Calls the function and uses the users entered id and body params for the values to pass into function
     const userUpdated = await updateUser(userId, updatedUserFields);
+
 
     // If the User is updated once it will gain a property called modifiedCount if this is 1 its true
     if(userUpdated.modifiedCount == 1){
       // Success Message
-      res.status(200).json({message: `User ${userId} updated`}); // Success Message
+      res.status(200).json({User_Updated: `User ${userId} updated`,
+      // THIS is apart of the success message and it looks to see the length of the array of changes. IF array is 0? say message  'No changes made'
+      Changes_Made_To: changesMadeByUserArray.length > 0 ? changesMadeByUserArray : 'No changes made'}); // Success Message
       debugUser(`User ${userId} Updated`);
     }
     else{
       // Error Message
-      res.status(400).json({error: `User ${userId} Not Found`});
+      res.status(404).json({Error: `User ${userId} Not Found`});
       debugUser(`User ${userId} Not Found  \n`); // Message Appears in terminal
     }
   }
   catch (err) {
-    res.status(500).json({error: err.stack});
+    res.status(500).json({Error: err.stack});
   }
 });
 // uuuuuuuuuuuuuuuuu UPDATE A USER uuuuuuuuuuuuuuuuu
@@ -306,17 +325,17 @@ router.delete("/:userId", async (req, res) => {
 
       if(deleteTheUser.deletedCount == 1){
         // Success Message
-        res.status(200).json({message: `User ${usersId} Deleted`, usersId});
+        res.status(200).json({User_Deleted: `User ${usersId} Deleted`, usersId});
         debugUser(`User ${usersId} Deleted\n`, usersId); // Message Appears in terminal
       }
       else{
         // Error Message
-        res.status(404).json({error: `User ${usersId} Not Found`});
+        res.status(404).json({Error: `User ${usersId} Not Found`});
         debugUser(`User ${usersId} Not Found\n`); // Message Appears in terminal
       }
   }
   catch (err) {
-    res.status(500).json({error: err.stack});
+    res.status(500).json({Error: err.stack});
   }
 
 });

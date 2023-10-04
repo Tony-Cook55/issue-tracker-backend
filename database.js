@@ -323,6 +323,27 @@ async function closeBug(bugsId, closedFields){
 
 
 
+
+// ********************* ONLY FOR MY USE NOT THE USER *********************
+// ------------------ DELETE BUG BY ID ------------------ //
+async function deleteBug(bugsId){
+
+  const dbConnected = await connect();
+
+  // gets the inputted id and the input for all the fields due to the:  ... gets all the values from the fields
+  const deleteTheBug = await dbConnected.collection("Bug").deleteOne({_id: new ObjectId(bugsId)});
+
+  return deleteTheBug;
+}
+// ------------------ DELETE BUG BY ID ------------------ //
+// ********************* ONLY FOR MY USE NOT THE USER *********************
+
+
+
+
+
+
+
   // !!!!!! BUGS EXPORTS !!!!!!!! //
 export{
   getAllBugs,
@@ -331,7 +352,10 @@ export{
   updateBug,
   updateClassification,
   assignBugToUser,
-  closeBug
+  closeBug,
+
+
+  deleteBug
 };
 
   // !!!!!! BUGS EXPORTS !!!!!!!! //
