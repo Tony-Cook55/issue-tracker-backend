@@ -1,0 +1,148 @@
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- BOOTSTRAP -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
+
+  <!-- CSS SHEET -->
+  <link rel="stylesheet" type="text/css" href="register_CSS.css">
+
+
+
+
+  <title>Register</title>
+</head>
+
+
+
+
+
+<body    class="d-flex flex-column min-vh-100">   <!--  http://localhost:5000  -->
+
+
+
+  <!-- !!!!!!!!!!!!!!!!!!!!  HEADER !!!!!!!!!!!!!!!!! -->
+
+  <!-- !!!!!!!!!!!!!!!!!!!!  HEADER !!!!!!!!!!!!!!!!! -->
+
+
+
+
+
+  <!-- @@@@@@@@@@@@@@@@@@ MAIN CONTENT @@@@@@@@@@@@@@@@@ -->
+
+  <!-- @@@@@@@@@@@@@@@@@@ MAIN CONTENT @@@@@@@@@@@@@@@@@ -->
+
+
+
+
+
+
+
+              <!-- ADDING USER  -->
+  <section class="bg-image">
+  <div class="">
+    <div class="container  form_container">
+      <div class="row d-flex justify-content-center align-items-center h-100">
+        <div class="col-12 col-md-9 col-lg-7 col-xl-6">
+          <div class="card">
+            <div class="card-body p-5">
+            <!-- <h1 class="text-uppercase text-center mb-5  hello" >Hello</h1> -->
+
+              <div id="main_text" class="text-center">
+                <h1 class="hello">Hello</h1>
+                <p id="small_shadow">Hello</p>
+              </div>
+
+              <!-- -->
+              <form  action="/api/users/register" method="post">
+
+                <div class="form-outline mb-4">
+                  <label class="form-label form-label--shadow" for="txtFullName">Full Name</label>
+                  <input type="text" name="fullName" id="txtFullName" class="form-control form-control-lg">
+                </div>
+
+                <div class="form-outline mb-4">
+                  <label class="form-label" for="txtGivenName">Given Name</label>
+                  <input type="text" name="givenName" id="txtGivenName"  class="form-control form-control-lg">
+                </div>
+
+                <div class="form-outline mb-4">
+                  <label class="form-label" for="txtFamilyName">Family Name</label>
+                  <input type="text" name="familyName" id="txtFamilyName"  class="form-control form-control-lg">
+                </div>
+
+                <div class="form-outline mb-4">
+                  <label class="form-label" for="txtRole">Role</label>
+                  <input type="text" name="role" id="txtRole"  class="form-control form-control-lg">
+                </div>
+
+
+
+
+
+
+                <div class="form-outline mb-4">
+                  <label class="form-label" for="txtEmail">Your Email</label>
+                  <input type="email" name="email"  id="txtEmail" class="form-control form-control-lg">
+                </div>
+
+                <div class="form-outline mb-4">
+                  <label class="form-label" for="txtPassword">Password</label>
+                  <input type="password" name="password" id="txtPassword"  class="form-control form-control-lg">
+                </div>
+
+
+                <div class="d-flex justify-content-center">
+                  <button type="submit" class="btn btn-success btn-block btn-lg gradient-custom-4 text-body" value="Register User">
+                    Register User
+                  </button>
+                </div>
+
+              </form>
+
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+
+
+
+
+
+
+
+
+
+  <!-- #################### FOOTER ##################### -->
+  <footer class="bg-dark text-center    mt-auto">
+    <!-- Copyright -->
+    <div class="text-center p-3">
+      <h6 class="text-light">&copy; 2020 Copyright Tony Cook</h6>
+    </div>
+    <!-- Copyright -->
+  </footer>
+  <!-- #################### FOOTER ##################### -->
+
+
+
+
+
+
+
+
+
+
+
+
+    <!-- BOOTSTRAP -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm" crossorigin="anonymous"></script>
+</body>
+</html>

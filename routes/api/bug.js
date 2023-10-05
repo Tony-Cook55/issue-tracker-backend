@@ -219,9 +219,9 @@ router.put("/:bugId/classify", async (req,res) => {
   // If there is no input for classification error
   if(!classifyBugFields.classification){
     res.status(400).json({Error: `Please Enter 1A Classification of: Approved, Unapproved, Duplicate, or Unclassified`});
-  } 
+  }
   // IF there is a response but it doesn't match Approved, Unapproved, Duplicate, or Unclassified throw error
-  else if(  
+  else if(
   classifyBugFields.classification.toLowerCase() !== "approved" &&
   classifyBugFields.classification.toLowerCase() !== "unapproved" &&
   classifyBugFields.classification.toLowerCase() !== "duplicate" &&
@@ -349,7 +349,7 @@ router.put("/:bugId/close", async (req,res) => {
     debugBug(`Bug Not Closed`);
   }
   // IF The users response dose is not True or False Throw Error
-  else if(  
+  else if(
     closedFields.closed.toLowerCase() !== "true" &&
     closedFields.closed.toLowerCase() !== "false"
     ){
