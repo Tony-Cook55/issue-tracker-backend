@@ -23,6 +23,14 @@ import bcrypt from "bcrypt";
 import { connect, getAllUsers, getUserById, addNewUser, loginUser, updateUser, deleteUser} from "../../database.js";
 
 
+
+// CALLS IN THE MIDDLEWARE FUNCTION     - JOI
+import Joi from "joi";
+
+import { validId } from "../../middleware/validId.js";
+
+import { validBody } from "../../middleware/validBody.js";
+
 // I I I I I I I    IMPORTS   I I I I I I I
 
 
@@ -58,12 +66,19 @@ router.get("/list", async (req, res) => {
 
 
 //!!!!!!!!!!!!!!!!!!  SEARCHING BY ID !!!!!!!!!!!!!!!!   http://localhost:5000/api/users/ (id of User)
+
 // GETTING A USER BY THEIR userId
-router.get("/:userId", async (req, res) => {   // the :userId   makes a param variable that we pass in
+// What ever is in the .get("/:HERE!") you must make it the same as what in validId("HERE!")
+router.get("/:userId",   validId("userId"),    async (req, res) => {   // the :userId   makes a param variable that we pass in
   try {
 
+
+    // USING JOI SO WE DON'T NEED THE .params to get users res
+    const usersId = req.userId;  // We don't need to have .params is due to the validId("id") is using the id from the params in function
+
+
     // were are getting a request with the parameters a user puts for the .id
-    const usersId = req.params.userId;
+    //const usersId = req.params.userId;
 
     // for every usersId return true when our _id is == to the id user enters
     const receivedUserId = await getUserById(usersId);
@@ -74,9 +89,12 @@ router.get("/:userId", async (req, res) => {   // the :userId   makes a param va
       res.status(200).json(receivedUserId);
       debugUser(`Success, Got "${receivedUserId.fullName}" Id: ${usersId}\n`); // Message Appears in terminal
     }
+    else if(!usersId){
+      debugUser(`DEAR GOD`); // Message Appears in terminal
+    }
     else{
       // Error Message
-      res.status(404).json(`User ${usersId} Not Found`);
+      res.status(404).json({Id_Error: `User ${usersId} Not Found`});
       debugUser(`User ${usersId} Not Found\n`); // Message Appears in terminal
     }
   }
@@ -95,7 +113,91 @@ router.get("/:userId", async (req, res) => {   // the :userId   makes a param va
 
 
 // ++++++++++++++++ ADDING A NEW USER TO THE DATABASE ++++++++++++++++++ http://localhost:5000/api/users/register
-router.post("/register", async (req, res) => {
+
+
+
+// Step 1 Define the Login User Schema    THESE WILL BE THE RULE SET FOR THE INPUTTED DATA
+const registerUserSchema = Joi.object({
+
+
+  password: Joi.string()
+  .trim()
+  .min(8)
+  .max(50)
+  .required()
+  .messages({ // These are custom messages that will show based on the "type": "string.empty", that throws on an error
+    'string.empty': 'Password Is Required', // If password is left blank
+    'string.min': 'Password must be at least {#limit} characters long',  // if less than 8 characters
+    'string.max': 'Password must be at most {#limit} characters long', // if more than 50 characters
+    'any.required': 'Password is required', // if the password is left uncheck marked and not entered
+  }),
+
+
+  email: Joi.string()
+  .trim()
+  .email({ tlds: { allow: false } })
+  .required()
+  .messages({
+    'string.empty': 'Email is required', // if email is left empty
+    'string.email': 'Email must be a valid email address', // if email does not contain an @HERE.com
+    'any.required': 'Email is required', // if email is left uncheck marked and not entered
+  }),
+
+
+  fullName: Joi.string()
+    .required()
+    .messages({
+      'string.empty': 'Full name is required',
+      'any.required': 'Full name is required',
+    }),
+
+
+    givenName: Joi.string()
+    .required()
+    .messages({
+      'string.empty': 'Given name is required',
+      'any.required': 'Given name is required',
+    }),
+
+
+    familyName: Joi.string()
+    .required()
+    .messages({
+      'string.empty': 'Family name is required',
+      'any.required': 'Family name is required',
+    }),
+
+
+    role: Joi.array().items(
+      Joi.string()
+      .lowercase() // Doesn't matter how user types it Capital or Not
+      .valid(  // IF the user enters anything other than these it will not be valid
+      "Developer",
+      "Business Analysts",
+      "Quality Analyst",
+      "Product Manager",
+      "Technical Manager",
+      )
+    )
+    .required()
+    .min(1) // Minimum of at least one role
+    .max(5) // Maximum of five roles
+    .messages({
+      'string.empty': 'Role is required',
+      'any.required': 'Role is required',
+      'array.base': 'Roles must be an array',
+      'array.min': 'At least one role must be provided',
+      'array.max': 'A maximum of five roles can be provided',
+      'string.valid': 'Invalid role selected',
+    }),
+
+
+  }); // END OF registerUserSchema
+
+
+
+
+router.post("/register",  validBody(registerUserSchema),   async (req, res) => {
 
   // Getting the users data from the body like a form
   const newUser = req.body;
@@ -109,28 +211,6 @@ router.post("/register", async (req, res) => {
     if(emailExists){
       res.status(400).json({Error: "Email Already Registered"});
       debugUser(`Email Already Registered \n`); // Message Appears in terminal
-    }
-    // If there is not info in any of the fields throw error status. If not continue with adding user
-    else if(!newUser){
-      res.status(400).json({Error: "Please Enter Information for all Fields"});
-    }
-    else if(!newUser.email){
-      res.status(400).json({Email_Error: "Please Enter a Email"});
-    }
-    else if(!newUser.password){
-      res.status(400).json({Password_Error: "Please Enter a Password"});
-    }
-    else if(!newUser.fullName){
-      res.status(400).json({Full_Name_Error: "Please Enter Your Full Name"});
-    }
-    else if(!newUser.givenName){
-      res.status(400).json({Given_Name_Error: "Please Enter Your Given Name"});
-    }
-    else if(!newUser.familyName){
-      res.status(400).json({Family_Name_Error: "Please Enter Your Family Name"});
-    }
-    else if(!newUser.role){
-      res.status(400).json({Role_Error: "Please Enter Your Role"});
     }
     else{  // !!!!!! SUCCESS !!!!!!
       try { // IF we have valid data for a new user do this
@@ -154,6 +234,29 @@ router.post("/register", async (req, res) => {
           res.status(200).json({User_Added: `User ${newUser.fullName} Added With An Id of ${addingNewUser.insertedId}`});
           debugUser(`User ${newUser.fullName} Added With An Id of ${addingNewUser.insertedId} \n`); // Message Appears in terminal
         }
+        /////// IF NO JOI USE BACK UP IS STATEMENTS ///////
+        // // If there is not info in any of the fields throw error status. If not continue with adding user
+        // else if(!newUser){
+        //   res.status(400).json({Error: "Please Enter Information for all Fields"});
+        // }
+        // else if(!newUser.email){
+        //   res.status(400).json({Email_Error: "Please Enter a Email"});
+        // }
+        // else if(!newUser.password){
+        //   res.status(400).json({Password_Error: "Please Enter a Password"});
+        // }
+        // else if(!newUser.fullName){
+        //   res.status(400).json({Full_Name_Error: "Please Enter Your Full Name"});
+        // }
+        // else if(!newUser.givenName){
+        //   res.status(400).json({Given_Name_Error: "Please Enter Your Given Name"});
+        // }
+        // else if(!newUser.familyName){
+        //   res.status(400).json({Family_Name_Error: "Please Enter Your Family Name"});
+        // }
+        // else if(!newUser.role){
+        //   res.status(400).json({Role_Error: "Please Enter Your Role"});
+        // }
         else{
           // Error Message
           res.status(400).json({Error: `User ${newUser.fullName} Not Added`});
@@ -176,7 +279,40 @@ router.post("/register", async (req, res) => {
 
 
 // /////////////// USER LOGIN WITH EMAIL & PASSWORD ///////////////// http://localhost:5000/api/users/login
-router.post("/login", async (req, res) => {
+
+
+
+// Step 1 Define the Login User Schema    THESE WILL BE THE RULE SET FOR THE INPUTTED DATA
+const loginUserSchema = Joi.object({
+  password: Joi.string()
+  .trim()
+  .min(8)
+  .max(50)
+  .required()
+  .messages({ // These are custom messages that will show based on the "type": "string.empty", that throws on an error
+    'string.empty': 'Your Password Is Required', // If password is left blank
+    'string.min': 'Your Password must be at least {#limit} characters long',  // if less than 8 characters
+    'string.max': 'Your Password must be at most {#limit} characters long', // if more than 50 characters
+    'any.required': 'Your Password is required', // if the password is left uncheck marked and not entered
+  }),
+
+
+  email: Joi.string()
+  .trim()
+  .email({ tlds: { allow: false } })
+  .required()
+  .messages({
+    'string.empty': 'Your Email is required', // if email is left empty
+    'string.email': 'Your Email must be a valid email address', // if email does not contain an @HERE.com
+    'any.required': 'Your Email is required', // if email is left uncheck marked and not entered
+  }),
+})
+
+
+
+
+
+router.post("/login",   validBody(loginUserSchema),   async (req, res) => {
 
     const usersLoginInformation = req.body; // Getting the users data from a body form
 
@@ -184,32 +320,21 @@ router.post("/login", async (req, res) => {
     const usersLoggedIn = await loginUser(usersLoginInformation);
 
   try {
-      // If there is not info in any of the fields or in either email or password throw error status.
-      if(!usersLoginInformation){
-        res.status(400).json({Error: "Please Enter Your Login Credentials."});
-      }
-      else if(!usersLoginInformation.email){
-        res.status(400).json({Email_Error: "Please Enter Your Email."});
-      }
-      else if(!usersLoginInformation.password){
-        res.status(400).json({Password_Error: "Please Enter Your Password."});
-      }
-      else{
+      /////// IF NO JOI USE BACK UP IF STATEMENTS ///////
+      // // If there is not info in any of the fields or in either email or password throw error status.
+      // if(!usersLoginInformation){
+      //   res.status(400).json({Error: "Please Enter Your Login Credentials."});
+      // }
+      // else if(!usersLoginInformation.email){
+      //   res.status(400).json({Email_Error: "Please Enter Your Email."});
+      // }
+      // else if(!usersLoginInformation.password){
+      //   res.status(400).json({Password_Error: "Please Enter Your Password."});
+      // }
+      // else{
+
+
         // If our Database find finds the usersLoginInformation entered has the email and password set them to const variables
-        const emailMatches = usersLoginInformation.email;
-        const passwordMatches = usersLoginInformation.password;
-
-
-        // If the email and password entered DO NOT MATCH anything in the Database from above throw error
-        if(!emailMatches && !passwordMatches){
-          res.status(400).json({Error: `Invalid login credential provided. Please try again.`});
-        }
-        if(!emailMatches){ // If just email doesn't match
-          res.status(400).json({Error: `Invalid Email. Please Re-Enter Email.`});
-        }
-        else if(!passwordMatches){ // If just password doesn't match
-          res.status(400).json({Error: `Invalid Password. Please Re-Enter Password.`});
-        }
 
 
 
@@ -221,13 +346,27 @@ router.post("/login", async (req, res) => {
           res.status(200).json({Welcome_Back: `Welcome ${usersLoggedIn.fullName} You Are Successfully Logged In`});
           debugUser(`Welcome ${usersLoggedIn.fullName} You Are Successfully Logged In`); // Message Appears in terminal
         }
-        else{
+
+
+        asdasdaskdhadajsdakdjaskjdlasdlakdsasld
+        //If just email doesn't match
+        else if(usersLoginInformation.email != usersLoggedIn.email){
+          res.status(400).json({Error: `Invalid Email. Please Re-Enter Email.`});
+          debugUser(`Invalid Email. Please Re-Enter Email.`); // Message Appears in terminal
+        }
+        // If just password doesn't match
+        else if(usersLoginInformation.password != usersLoggedIn.password){
+          res.status(400).json({Error: `Invalid Password. Please Re-Enter Password.`});
+          debugUser(`Invalid Password. Please Re-Enter Password.`); // Message Appears in terminal
+        }
+
+
+        else{ // xxxxxx ERROR xxxxxxx
           //Error
           res.status(400).json({Error: `User Not Found`});
           debugUser(`User ${usersLoggedIn.fullName} Not Found`); // Message Appears in terminal
         }
       }
-  }
   catch (err) {
     res.status(500).json({Error: err.stack});
   }

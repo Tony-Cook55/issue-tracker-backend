@@ -18,6 +18,12 @@ const nanoid = customAlphabet('1234567890abcdef', 10)
 import { connect, getAllBugs, getBugById, addNewBug, updateBug, updateClassification, assignBugToUser, getUserById, closeBug,      deleteBug } from "../../database.js";
 
 
+
+// CALLS IN THE MIDDLEWARE FUNCTION     - JOI
+import Joi from "joi";
+
+
+
 // I I I I I I I    IMPORTS   I I I I I I I
 
 
@@ -69,7 +75,7 @@ router.get("/:bugId", async (req, res) => {
     }
     else{
       // Error Message
-      res.status(404).json(`Bug ${bugsId} Not Found`);
+      res.status(404).json({Id_Error:`Bug ${bugsId} Not Found`});
       debugBug(`Bug ${bugsId} Not Found\n`); // Message Appears in terminal
     }
 
