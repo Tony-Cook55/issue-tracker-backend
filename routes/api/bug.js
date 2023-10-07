@@ -22,6 +22,9 @@ import { connect, getAllBugs, getBugById, addNewBug, updateBug, updateClassifica
 // CALLS IN THE MIDDLEWARE FUNCTION     - JOI
 import Joi from "joi";
 
+import { validId } from "../../middleware/validId.js";
+
+import { validBody } from "../../middleware/validBody.js";
 
 
 // I I I I I I I    IMPORTS   I I I I I I I
@@ -58,12 +61,13 @@ router.get("/list", async (req, res) => {
 
 
 //!!!!!!!!!!!!!!!!!!  SEARCHING BY ID !!!!!!!!!!!!!!!!   http://localhost:5000/api/bugs/ (id of User)
-router.get("/:bugId", async (req, res) => {
+// What ever is in the .get("/:HERE!") you must make it the same as what in validId("HERE!")
+router.get("/:bugId",     validId("bugId"),    async (req, res) => {
 
   try {
 
     // were are getting a request with the parameters a user puts for the .id
-    const bugsId = req.params.bugId;
+    const bugsId = req.bugId;
 
     // for every bugsId return true when our _id is == to the id user enters
     const receivedBugId = await getBugById(bugsId);
@@ -95,7 +99,50 @@ router.get("/:bugId", async (req, res) => {
 
 
 // ++++++++++++++++ ADDING A NEW BUG TO THE DATABASE ++++++++++++++++++   http://localhost:5000/api/bugs/new
-router.post("/new", async (req, res) => {
+
+
+// Step 1 Define the Login User Schema    THESE WILL BE THE RULE SET FOR THE INPUTTED DATA
+const addNewBugSchema = Joi.object({
+
+    title: Joi.string()
+    .trim()
+    .required()
+    .messages({
+      'string.empty': 'Title is required',
+      'any.required': 'Title is required',
+    }),
+
+
+    description: Joi.string()
+    .trim()
+    .required()
+    .messages({
+      'string.empty': 'Description is required',
+      'any.required': 'Description is required',
+    }),
+
+
+    stepsToReproduce: Joi.array()
+    .items(
+      Joi.string()
+      .required()
+      .min(1) // Minimum of at least one role
+      .max(100) // Maximum of 100 steps
+      .messages({
+        'string.empty': 'Steps To Reproduce is required',
+        'any.required': 'Steps To Reproduce is required',
+        'array.base': 'Steps To Reproduce must be an array',
+        'array.min': 'At least one step must be provided',
+        'array.max': 'A maximum of 100 steps can be provided',
+        'string.valid': 'Invalid Step To Reproduce provided',
+      }),
+    ),
+
+});
+
+
+
+router.post("/new",     validBody(addNewBugSchema),    async (req, res) => {
 
     // Getting the users data from the body like a form
     const newBug = req.body;
@@ -150,11 +197,57 @@ router.post("/new", async (req, res) => {
 
 
 // uuuuuuuuuuuuuuuuu UPDATE A BUG uuuuuuuuuuuuuuuuu  http://localhost:5000/api/bugs/ (ID here)
-router.put("/:bugId", async (req, res) => {
+
+
+
+// Step 1 Define the Login User Schema    THESE WILL BE THE RULE SET FOR THE INPUTTED DATA
+const updateBugSchema = Joi.object({
+
+  title: Joi.string()
+  .trim()
+  .required()
+  .messages({
+    'string.empty': 'Title is required',
+    'any.required': 'Title is required',
+  }),
+
+
+  description: Joi.string()
+  .trim()
+  .required()
+  .messages({
+    'string.empty': 'Description is required',
+    'any.required': 'Description is required',
+  }),
+
+  classification: Joi.string()
+  .default("Unclassified") // If nothing is entered for this field it will auto default to being UnClassified
+  .trim(),
+
+  stepsToReproduce: Joi.array()
+  .items(
+    Joi.string()
+    .min(1) // Minimum of at least one role
+    .max(100) // Maximum of 100 steps
+    .messages({
+      'array.base': 'Steps To Reproduce must be an array',
+      'array.min': 'At least one step must be provided',
+      'array.max': 'A maximum of 100 steps can be provided',
+      'string.valid': 'Invalid Step To Reproduce provided',
+    }),
+  ),
+
+
+});
+
+
+
+
+router.put("/:bugId",    validId("bugId"), validBody(updateBugSchema),   async (req, res) => {
 
 
     // This gets the ID from the users input
-    const bugsId = req.params.bugId; //
+    const bugsId = req.bugId; //
 
     // For this line to work you have to have the body parser thats up top MIDDLEWARE
     const updatedBugFields = req.body;  // An .body is an object in updatedBug lets our body read the users id
@@ -210,13 +303,40 @@ router.put("/:bugId", async (req, res) => {
 
 
 // ccccccccccccccccc CLASSIFY A BUG ccccccccccccccccc  http://localhost:5000/api/bugs/classify/(ID here)/
-router.put("/:bugId/classify", async (req,res) => {
+
+
+// Step 1 Define the Login User Schema    THESE WILL BE THE RULE SET FOR THE INPUTTED DATA
+const classifyBugSchema = Joi.object({
+
+  classification: Joi.string()
+  .trim()
+  .required()
+  .valid(
+    "Approved", "approved",
+    "Unapproved", "unapproved",
+    "Duplicate", "duplicate",
+  ) 
+  .max(1) // There can only be 1 classification
+  .message({
+    'string.empty': 'A Classification is required',
+    'any.required': 'A Classification is required',
+    'any.only': 'Classifications Must Be Approved, Unapproved, or Duplicate', // None of the correct inputs are there
+    'string.max': 'Only {#limit} Classification is allowed', // if more than 50 characters
+  }),
+
+
+});
+
+
+
+
+router.put("/:bugId/classify",    validId("bugId"), validBody(classifyBugSchema),     async (req,res) => {
 
 // OPTIONS TO CLASSIFY FOR: approved, unapproved, duplicate, by default unclassified
 
 
   //GETS the users input for the bugs id from the url
-  const bugsId = req.params.bugId;
+  const bugsId = req.bugId;
 
   // For this line to work you have to have the body parser thats up top MIDDLEWARE
   const classifyBugFields = req.body  // An .body is an object lets our body read the Bugs id
@@ -266,11 +386,27 @@ router.put("/:bugId/classify", async (req,res) => {
 
 
 
+
+
+
+
 // aaaaaaaaaaaaaaaaaa ASSIGN A BUG aaaaaaaaaaaaaaaaaa  Bugs can be assigned to Developers, Business Analysts, and Quality Analysts.
-router.put("/:bugId/assign", async (req,res) => {
+
+// Step 1 Define the Login User Schema    THESE WILL BE THE RULE SET FOR THE INPUTTED DATA
+const assignBugSchema = Joi.object({
+
+  assignedToUserId: Joi.string()
+  .trim()
+  .required(),
+});
+
+
+
+
+router.put("/:bugId/assign",   validId("bugId"), validBody(assignBugSchema),    async (req,res) => {
 
   //GETS the users input for the bugs id from the url
-  const bugsId = req.params.bugId;
+  const bugsId = req.bugId;
 
   // For this line to work you have to have the body parser thats up top MIDDLEWARE
   const assignBugFields = req.body;  // An .body is an object in updatedBook lets our body read the Bugs id
@@ -338,11 +474,31 @@ router.put("/:bugId/assign", async (req,res) => {
 
 
 // xxxxxxxxxxxxxx CLOSE BUG xxxxxxxxxxxxxx
-router.put("/:bugId/close", async (req,res) => {
+
+
+
+// Step 1 Define the Close Bug Schema    THESE WILL BE THE RULE SET FOR THE INPUTTED DATA
+const closeBugSchema = Joi.object({
+
+  closed: Joi.string()
+  .trim()
+  .valid(  // User must enter True or false
+    "True",
+    "true",
+    "False",
+    "false",
+  )
+  .required(),
+});
+
+
+
+
+router.put("/:bugId/close",    validId("bugId"), validBody(closeBugSchema),     async (req,res) => {
 
 
   // This gets the ID from the users input
-  const bugsId = req.params.bugId;
+  const bugsId = req.bugId;
 
   // For this line to work you have to have the body parser thats up top MIDDLEWARE
   const closedFields = req.body;  // An .body is an object in updatedBug lets our body read the users id
