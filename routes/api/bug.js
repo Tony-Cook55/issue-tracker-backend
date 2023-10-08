@@ -205,7 +205,6 @@ const updateBugSchema = Joi.object({
 
   title: Joi.string()
   .trim()
-  .required()
   .messages({
     'string.empty': 'Title is required',
     'any.required': 'Title is required',
@@ -214,15 +213,16 @@ const updateBugSchema = Joi.object({
 
   description: Joi.string()
   .trim()
-  .required()
   .messages({
     'string.empty': 'Description is required',
     'any.required': 'Description is required',
   }),
 
+
   classification: Joi.string()
   .default("Unclassified") // If nothing is entered for this field it will auto default to being UnClassified
   .trim(),
+
 
   stepsToReproduce: Joi.array()
   .items(
