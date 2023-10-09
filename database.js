@@ -222,7 +222,7 @@ async function addNewBug(newBug){
 
   // Here we create a new item in the database called usersCreationDate and we set the time it was made at for its value
   //newUser.usersCreationDate = new Date().toDateString();
-  newBug.usersCreationDate = new Date().toLocaleString('en-US');
+  newBug.bugsCreationDate = new Date().toLocaleString('en-US');
 
 
   const addingNewBug = await dbConnected.collection("Bug").insertOne(newBug);
@@ -361,6 +361,183 @@ export{
   // !!!!!! BUGS EXPORTS !!!!!!!! //
 
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! BUGS !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! //
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// cccccccccccccccccccccccccccccccccccccccccccccc COMMENTS cccccccccccccccccccccccccccccccccccccccccccccc // 
+
+
+
+
+// ~~~~~~~~~~~~~~~~ FIND ALL COMMENTS ~~~~~~~~~~~~~~~~ //
+async function getAllCommentsInBug(bugId){
+  // Calling the connect from above method to get the DB
+  const dbConnected = await connect();
+
+  // Finds the Bugs Id
+  const foundBugId = await dbConnected.collection("Bug").findOne({ _id: new ObjectId(bugId) });
+
+  /*
+  if(foundBugId){
+    return foundBugId.comments; // This will return all of the comments in the comments array
+  }
+  */
+
+  return foundBugId; // This will throw our else error
+}
+// ~~~~~~~~~~~~~~~~ FIND ALL COMMENTS ~~~~~~~~~~~~~~~~ //
+
+
+
+
+
+// !!!!!!!!!!!!!!! SEARCHING FOR A COMMENT IN BUG BY ID !!!!!!!!!!!!!!! //
+async function getCommentById(bugsId, commentsId) {
+  const dbConnected = await connect();
+
+  // Finds the Bugs Id 
+  const foundBugsId = await dbConnected.collection("Bug").findOne({ _id: new ObjectId(bugsId) });
+
+
+  // If the bug is found Do This
+  if (foundBugsId) {  
+    // in the bug we access the array named comments. Next we use a find to allow us to do a match to check if the entered Id by the user matches the pre-existing comments Id
+    const foundCommentsId = foundBugsId.comments.find(originalCommentId => originalCommentId._id.toString() === commentsId);
+
+
+    // If the comment id is found from above then we return it out to be displayed for user
+    if (foundCommentsId) {
+      return foundCommentsId; 
+    } 
+    else {
+      return null; // Comment not found within the bug
+    }
+  }
+
+
+  return null; // Bug with Entered Id is not found throw my else error
+}
+// !!!!!!!!!!!!!!! SEARCHING FOR A COMMENT IN BUG BY ID !!!!!!!!!!!!!!! //
+
+
+
+
+
+// +++++++++++++++++++ NEW COMMENT +++++++++++++++++++ //      http://localhost:5000/api/bugs/652401b1c0e6b2745f847157/comment/new
+async function newComment(bugsId, newCommentFields){
+
+  const dbConnected = await connect();
+
+
+    // Create a new ObjectId for the comment
+    const commentId = new ObjectId();
+
+  // This is lets us make the items the user adds get put into an array named comments
+  // Here we make the structure in how we want the comment to be added in the array
+  const commentStructure = {
+    _id: commentId, // This allows us to add a new ID For each bug
+    author: newCommentFields.author, // this plugs in the users info for the Author
+    message: newCommentFields.message, // this plugs in the users message for the Comment
+    createdOn: new Date().toLocaleString('en-US'),
+  };
+
+
+  const commentCreated = await dbConnected.collection("Bug").updateOne(
+    { _id: new ObjectId(bugsId) },
+    {
+      $push: {
+        comments: commentStructure,
+      },
+    }
+  );
+
+
+  /*   UPON MAKING A COMMENT WITH THE STRUCTURE WE GET THIS
+    "comments": [
+        {
+            "author": "Jimmy 1",
+            "message": "This is a test Comment to see if It work"
+            "createdOn": "10/9/2023, 9:23:47 AM",
+        },
+*/
+
+
+  //This will create a new item called classifiedOn which sets the current date its classified on
+  //newCommentFields.createdOn = new Date().toLocaleString('en-US');
+
+  // gets the inputted id and the input for all the fields due to the:  ... gets all the values from the fields
+  //const commentCreated = await dbConnected.collection("Bug").updateOne({_id: new ObjectId(bugsId)},{$set:{...newCommentFields}});
+
+  return commentCreated;
+}
+// +++++++++++++++++++ NEW COMMENT +++++++++++++++++++ //
+
+
+
+
+
+
+// ********************* ONLY FOR MY USE NOT THE USER *********************
+// ------------------ DELETE BUG BY ID ------------------ //
+async function deleteComment(bugsId, commentsId){
+
+  const dbConnected = await connect();
+
+  const deleteCommentFromBug = await dbConnected.collection("Bug").updateOne(
+    { _id: new ObjectId(bugsId) },
+    { $pull: { comments: { _id: new ObjectId(commentsId) } } }
+  );
+
+
+    return deleteCommentFromBug.modifiedCount > 0;
+
+
+}
+// ------------------ DELETE BUG BY ID ------------------ //
+// ********************* ONLY FOR MY USE NOT THE USER *********************
+
+
+
+
+
+
+
+export{
+  getAllCommentsInBug,
+  getCommentById,
+  newComment,
+
+
+
+  deleteComment
+};
+
+
+// cccccccccccccccccccccccccccccccccccccccccccccc COMMENTS cccccccccccccccccccccccccccccccccccccccccccccc // 
+
+
+
+
+
+
+
+
+
 
 
 

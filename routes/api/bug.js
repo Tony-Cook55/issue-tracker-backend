@@ -14,8 +14,16 @@ import { customAlphabet } from 'nanoid'
 const nanoid = customAlphabet('1234567890abcdef', 10)
 
 
-// Imports all the functions from the database.js file to CRUD Users              assignBugToUser Also Uses getUserById
+// Imports all the  BUG CRUD functions from the database.js file                  assignBugToUser Also Uses getUserById
 import { connect, getAllBugs, getBugById, addNewBug, updateBug, updateClassification, assignBugToUser, getUserById, closeBug,      deleteBug } from "../../database.js";
+
+// Imports all the COMMENT functions from the database.js file to CRUD Users
+import { newComment, getCommentById, getAllCommentsInBug,         deleteComment } from "../../database.js";
+
+
+
+
+
 
 
 
@@ -37,6 +45,7 @@ router.use(express.urlencoded({extended:false}));
 
 
 
+// bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb BUGS bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb //
 
 // ~~~~~~~~~~~~~~~~ FIND ALL BUGS ~~~~~~~~~~~~~~~~ //    http://localhost:5000/api/bugs/list
 router.get("/list", async (req, res) => {
@@ -101,7 +110,7 @@ router.get("/:bugId",     validId("bugId"),    async (req, res) => {
 // ++++++++++++++++ ADDING A NEW BUG TO THE DATABASE ++++++++++++++++++   http://localhost:5000/api/bugs/new
 
 
-// Step 1 Define the Login User Schema    THESE WILL BE THE RULE SET FOR THE INPUTTED DATA
+// Step 1 Define the ADD NEW BUG User Schema    THESE WILL BE THE RULE SET FOR THE INPUTTED DATA
 const addNewBugSchema = Joi.object({
 
     title: Joi.string()
@@ -200,12 +209,11 @@ router.post("/new",     validBody(addNewBugSchema),    async (req, res) => {
 
 
 
-// Step 1 Define the Login User Schema    THESE WILL BE THE RULE SET FOR THE INPUTTED DATA
+// Step 1 Define the UPDATE BUG Schema    THESE WILL BE THE RULE SET FOR THE INPUTTED DATA
 const updateBugSchema = Joi.object({
 
   title: Joi.string()
   .trim()
-  .required()
   .messages({
     'string.empty': 'Title is required',
     'any.required': 'Title is required',
@@ -214,7 +222,7 @@ const updateBugSchema = Joi.object({
 
   description: Joi.string()
   .trim()
-  .required()
+
   .messages({
     'string.empty': 'Description is required',
     'any.required': 'Description is required',
@@ -392,7 +400,7 @@ router.put("/:bugId/classify",    validId("bugId"), validBody(classifyBugSchema)
 
 // aaaaaaaaaaaaaaaaaa ASSIGN A BUG aaaaaaaaaaaaaaaaaa  Bugs can be assigned to Developers, Business Analysts, and Quality Analysts.
 
-// Step 1 Define the Login User Schema    THESE WILL BE THE RULE SET FOR THE INPUTTED DATA
+// Step 1 Define the ASSIGN BUG Schema    THESE WILL BE THE RULE SET FOR THE INPUTTED DATA
 const assignBugSchema = Joi.object({
 
   assignedToUserId: Joi.string()
@@ -592,6 +600,264 @@ router.delete("/:bugId", async (req, res) => {
 });
 // -------------------- DELETING USER FROM DATABASE -------------------
 // ********************* ONLY FOR MY USE NOT THE USER *********************
+
+
+
+
+// bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb BUGS bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb //
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ccccccccccccccccccccccccccccccccccccccccccccc COMMENTS ccccccccccccccccccccccccccccccccccccccccccccc //
+
+
+
+
+
+
+// ~~~~~~~~~~~~~~~~ FIND ALL BUGS ~~~~~~~~~~~~~~~~ //    http://localhost:5000/api/bugs/(Id of Bug)/comment/list
+router.get("/:bugId/comment/list",    validId("bugId"),   async (req, res) => {
+  try {
+
+    const bugId = req.bugId;
+
+    // Plugs in the users input for bugId then checks if its valid if so throw the comments
+    const allCommentsInBug = await getAllCommentsInBug(bugId);
+
+
+    // Success Message
+    if (allCommentsInBug) {
+
+      // This will get into our Bug that we provided then we look in the array called comments   so we do    allCommentsInBug.comments
+      res.status(200).json(allCommentsInBug.comments);
+      debugBug(`Success! Found All Comments in Bug ${bugId}\n`);
+    } 
+    else {
+      res.status(404).json({ Id_Error: `Bug ${bugId} Not Found` });
+    }
+  }
+  catch (err) { // Error Message
+    res.status(500).json({Error: err.stack});
+  }
+});
+// ~~~~~~~~~~~~~~~~ FIND ALL BUGS ~~~~~~~~~~~~~~~~ //
+
+
+
+
+
+
+//!!!!!!!!!!!!!!!!!!  SEARCHING FOR A COMMENT IN BUG BY ID !!!!!!!!!!!!!!!!   http://localhost:5000/api/bugs/(id of Bug)/comment/(id of Comment)
+// What ever is in the .get("/:HERE!") you must make it the same as what in validId("HERE!")
+router.get("/:bugId/comment/:commentId",     validId("bugId"),    async (req, res) => {
+
+  try {
+
+    // were are getting a request with the parameters a user puts for the .id
+    const bugsId = req.bugId;
+
+    // Reads just the id of the comment entered
+    const commentsId = req.params.commentId;
+
+
+
+    // Plugs both our bug and comment id's into the function
+    const receivedCommentsId = await getCommentById(bugsId, commentsId);
+
+
+    if(receivedCommentsId){
+      // Success Message
+      res.status(200).json(receivedCommentsId); // Shows the comments
+      debugBug(`Success, Got "${receivedCommentsId.author}" Comment Id: ${commentsId} \n`); // Message Appears in terminal
+    }
+    else{
+      // Error Message
+      res.status(404).json({Id_Error:`Bug or Comment Id Invalid`});
+      debugBug(`Bug ${bugsId} or Comment ${commentsId} Not Found\n`); // Message Appears in terminal
+    }
+
+  }
+  catch (err) {
+    // Error Message
+    res.status(500).json({Error: err.stack});
+  }
+
+});
+//!!!!!!!!!!!!!!!!!!  SEARCHING FOR A COMMENT IN BUG BY ID !!!!!!!!!!!!!!!!
+
+
+
+
+
+
+
+
+
+// ++++++++++++++++ ADDING A NEW COMMENT TO BUG ++++++++++++++++++
+
+// Step 1 Define the ADD NEW COMMENT Schema    THESE WILL BE THE RULE SET FOR THE INPUTTED DATA
+const addNewCommentSchema = Joi.object({
+
+  author: Joi.string()
+  .trim()
+  .max(50)
+  .required()
+  .messages({ // These are custom messages that will show based on the "type": "string.empty", that throws on an error
+    'string.empty': 'Author of Comment Is Required', // If password is left blank
+    'string.max': 'Author must be at most {#limit} characters long', // if more than 50 characters
+    'any.required': 'Author of Comment is Required', // if the password is left uncheck marked and not entered
+  }),
+
+  message: 
+  Joi.string()
+  .trim()
+  .max(500)
+  .required()
+  .messages({ // These are custom messages that will show based on the "type": "string.empty", that throws on an error
+    'string.empty': 'Please Enter a Message', // If Comment is left blank
+    'string.max': 'Comment Can Only be 500 Characters Long', // if more than 500 characters
+    'any.required': 'Please Enter a Message', // if the Comment is left uncheck marked and not entered
+  }),
+
+});
+
+
+
+router.post("/:bugId/comment/new",    validId("bugId"), validBody(addNewCommentSchema),     async (req,res) => {
+
+  
+  
+    //GETS the users input for the bugs id from the url
+    const bugsId = req.bugId;
+  
+    // For this line to work you have to have the body parser thats up top MIDDLEWARE
+    const newCommentFields = req.body  // An .body is an object lets our body read the Bugs id
+    // .body holds all the information/fields the user enters
+  
+
+
+    if(!newCommentFields.author){
+      res.status(400).json({Error: `Please Enter A Authors Name`});
+    }
+    else if(!newCommentFields.message){
+      res.status(400).json({Error: `Please Enter A Message for Your Comment`});
+    }
+
+    else{  // ------ SUCCESS ------
+        try {
+          // Calls the function and uses the users entered id and body params for the values to pass into function
+          const commentCreated = await newComment(bugsId, newCommentFields);
+  
+          // If the Bugs Classification is updated once. It will gain a property called modifiedCount if this is 1 its true
+          if(commentCreated.modifiedCount == 1){
+            // Success Message
+            res.status(200).json({Comment_Created: `Comment Added to Bug ${bugsId} by ${newCommentFields.author}`}); // Success Message
+            debugBug(`Comment Added to Bug ${bugsId} by ${newCommentFields.author}`);
+          }
+          else{
+            // Error Message
+            res.status(404).json({Error: `Bug ${bugsId} Not Found`});
+            debugBug(`Bug ${bugsId} Not Found \n`); // Message Appears in terminal
+          }
+        }
+        catch (err) {
+          res.status(500).json({Error: err.stack});
+        }
+      }
+  });
+
+// ++++++++++++++++ ADDING A NEW COMMENT TO BUG ++++++++++++++++++
+
+
+
+
+
+
+
+
+
+// ********************* ONLY FOR MY USE NOT THE USER *********************
+// -------------------- DELETING BUG FROM DATABASE -------------------
+
+router.delete("/:bugId/comment/:commentId",     validId("bugId"),    async (req, res) => {
+
+  try {
+
+  // were are getting a request with the parameters a user puts for the .id
+  const bugsId = req.bugId;
+
+  // Reads just the id of the comment entered
+  const commentsId = req.params.commentId;
+
+
+  // Uses the Bug and Comments Id and plugs it into the deleteComment function
+    const commentIsDeleted = await deleteComment(bugsId, commentsId);
+
+    // If the comment is deleted then success
+    if(commentIsDeleted){
+      // Success Message
+      res.status(200).json({Comment_Deleted: `Comment Deleted`});
+      debugBug(`Comment Deleted`); // Message Appears in terminal
+    }
+    else{
+      // Error Message
+      res.status(404).json({Error: `Bug Id ${bugsId} Not Found`});
+      debugBug(`Bug ${bugsId} Not Found\n`); // Message Appears in terminal
+    }
+  }
+  catch (err) {
+    res.status(500).json({Error: err.stack});
+  }
+
+
+});
+// -------------------- DELETING USER FROM DATABASE -------------------
+// ********************* ONLY FOR MY USE NOT THE USER *********************
+
+
+
+
+
+
+// ccccccccccccccccccccccccccccccccccccccccccccc COMMENTS ccccccccccccccccccccccccccccccccccccccccccccc //
+
+
+
+
+
 
 
 

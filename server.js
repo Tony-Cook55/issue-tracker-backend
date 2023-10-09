@@ -89,6 +89,7 @@ app.use('/api/bugs',BugRouter);
 
 
 
+
 // REGISTERS THE ROUTES FOR THE HOME PAGE index.html
 app.get("/", (req, res) => {
   debugMain("Home Route Hit");
@@ -99,7 +100,7 @@ app.get("/", (req, res) => {
 // ERROR HANDLERS
 app.use((req, res) => {
   debugMain(`Sorry Couldn't find ${req.originalUrl}`);
-  res.status(404).json({error:`Sorry Couldn't Fine ${req.originalUrl}`});
+  res.status(404).json({Error:`Sorry Couldn't Fine ${req.originalUrl}`});
 });
 
 
