@@ -20,7 +20,8 @@ import { connect, getAllBugs, getBugById, addNewBug, updateBug, updateClassifica
 // Imports all the COMMENT functions from the database.js file to CRUD Users
 import { newComment, getCommentById, getAllCommentsInBug,         deleteComment } from "../../database.js";
 
-
+// Imports all the TEST CASE functions from the database.js file to CRUD Users
+import { getAllTestCasesInBug, getTestCaseById, newTestCase, updateTestCase, deleteTestCase } from "../../database.js";
 
 
 
@@ -207,8 +208,6 @@ router.post("/new",     validBody(addNewBugSchema),    async (req, res) => {
 
 // uuuuuuuuuuuuuuuuu UPDATE A BUG uuuuuuuuuuuuuuuuu  http://localhost:5000/api/bugs/ (ID here)
 
-
-
 // Step 1 Define the UPDATE BUG Schema    THESE WILL BE THE RULE SET FOR THE INPUTTED DATA
 const updateBugSchema = Joi.object({
 
@@ -312,7 +311,6 @@ router.put("/:bugId",    validId("bugId"), validBody(updateBugSchema),   async (
 
 
 // ccccccccccccccccc CLASSIFY A BUG ccccccccccccccccc  http://localhost:5000/api/bugs/classify/(ID here)/
-
 
 // Step 1 Define the Login User Schema    THESE WILL BE THE RULE SET FOR THE INPUTTED DATA
 const classifyBugSchema = Joi.object({
@@ -484,8 +482,6 @@ router.put("/:bugId/assign",   validId("bugId"), validBody(assignBugSchema),    
 
 // xxxxxxxxxxxxxx CLOSE BUG xxxxxxxxxxxxxx
 
-
-
 // Step 1 Define the Close Bug Schema    THESE WILL BE THE RULE SET FOR THE INPUTTED DATA
 const closeBugSchema = Joi.object({
 
@@ -649,7 +645,7 @@ router.delete("/:bugId", async (req, res) => {
 
 
 
-// ~~~~~~~~~~~~~~~~ FIND ALL BUGS ~~~~~~~~~~~~~~~~ //    http://localhost:5000/api/bugs/(Id of Bug)/comment/list
+// ~~~~~~~~~~~~~~~~ FIND ALL COMMENTS IN BUG ~~~~~~~~~~~~~~~~ //    http://localhost:5000/api/bugs/(Id of Bug)/comment/list
 router.get("/:bugId/comment/list",    validId("bugId"),   async (req, res) => {
   try {
 
@@ -674,7 +670,7 @@ router.get("/:bugId/comment/list",    validId("bugId"),   async (req, res) => {
     res.status(500).json({Error: err.stack});
   }
 });
-// ~~~~~~~~~~~~~~~~ FIND ALL BUGS ~~~~~~~~~~~~~~~~ //
+// ~~~~~~~~~~~~~~~~ FIND ALL COMMENTS IN BUG ~~~~~~~~~~~~~~~~ //
 
 
 
@@ -757,7 +753,7 @@ const addNewCommentSchema = Joi.object({
 
 
 
-router.post("/:bugId/comment/new",    validId("bugId"), validBody(addNewCommentSchema),     async (req,res) => {
+router.put("/:bugId/comment/new",    validId("bugId"), validBody(addNewCommentSchema),     async (req,res) => {
 
   
   
@@ -811,7 +807,7 @@ router.post("/:bugId/comment/new",    validId("bugId"), validBody(addNewCommentS
 
 
 // ********************* ONLY FOR MY USE NOT THE USER *********************
-// -------------------- DELETING BUG FROM DATABASE -------------------
+// -------------------- DELETING COMMENT FROM A BUG -------------------
 
 router.delete("/:bugId/comment/:commentId",     validId("bugId"),    async (req, res) => {
 
@@ -845,7 +841,7 @@ router.delete("/:bugId/comment/:commentId",     validId("bugId"),    async (req,
 
 
 });
-// -------------------- DELETING USER FROM DATABASE -------------------
+// -------------------- DELETING COMMENT FROM A BUG -------------------
 // ********************* ONLY FOR MY USE NOT THE USER *********************
 
 
@@ -854,6 +850,417 @@ router.delete("/:bugId/comment/:commentId",     validId("bugId"),    async (req,
 
 
 // ccccccccccccccccccccccccccccccccccccccccccccc COMMENTS ccccccccccccccccccccccccccccccccccccccccccccc //
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// tc tc tc tc tc tc tc tc tc tc tc  tc tc tc TEST CASES tc tc tc tc tc tc  tc tc tc tc tc tc tc //
+
+
+
+
+
+// ~~~~~~~~~~~~~~~~ FIND ALL TEST CASES IN BUG ~~~~~~~~~~~~~~~~ //    http://localhost:5000/api/bugs/65241671c43c2e5dd553db87/test/list
+router.get("/:bugId/test/list",    validId("bugId"),   async (req, res) => {
+  try {
+
+    const bugId = req.bugId;
+
+    // Plugs in the users input for bugId then checks if its valid if so throw the testCases
+    const allTestCasesInBug = await getAllTestCasesInBug(bugId);
+
+
+    // Success Message
+    if (allTestCasesInBug) {
+
+      // This will get into our Bug that we provided then we look in the array called testCases   so we do    allTestCasesInBug.comments
+      res.status(200).json(allTestCasesInBug.testCases);
+      debugBug(`Success! Found All Test Cases in Bug ${bugId}\n`);
+    } 
+    else {
+      res.status(404).json({ Id_Error: `Bug ${bugId} Not Found` });
+    }
+  }
+  catch (err) { // Error Message
+    res.status(500).json({Error: err.stack});
+  }
+});
+// ~~~~~~~~~~~~~~~~ FIND ALL TEST CASES IN BUG ~~~~~~~~~~~~~~~~ //
+
+
+
+
+
+
+
+
+//!!!!!!!!!!!!!!!!!!  SEARCHING FOR A TEST CASES IN BUG BY ID !!!!!!!!!!!!!!!!   http://localhost:5000/api/bugs/65241671c43c2e5dd553db87/test/65257171f013f1eed470fbf1
+// What ever is in the .get("/:HERE!") you must make it the same as what in validId("HERE!")
+router.get("/:bugId/test/:testId",     validId("bugId"),    async (req, res) => {
+
+  try {
+
+    // were are getting a request with the parameters a user puts for the .id
+    const bugsId = req.bugId;
+
+    // Reads just the id of the testCase entered
+    const testCasesID = req.params.testId;
+
+
+
+    // Plugs both our bug and Test Case id's into the function
+    const receivedTestCasesId = await getTestCaseById(bugsId, testCasesID);
+
+
+    if(receivedTestCasesId){
+      // Success Message
+      res.status(200).json(receivedTestCasesId); // Shows the Test Cases
+      debugBug(`Success, Got "${receivedTestCasesId.title}" Test Case Id: ${testCasesID} \n`); // Message Appears in terminal
+    }
+    else{
+      // Error Message
+      res.status(404).json({Id_Error:`Bug or Comment Id Invalid`});
+      debugBug(`Bug Id ${bugsId} or Test Case Id ${testCasesID} Not Found\n`); // Message Appears in terminal
+    }
+
+  }
+  catch (err) {
+    // Error Message
+    res.status(500).json({Error: err.stack});
+  }
+
+});
+//!!!!!!!!!!!!!!!!!!  SEARCHING FOR A TEST CASES IN BUG BY ID !!!!!!!!!!!!!!!!
+
+
+
+
+
+
+
+
+// ++++++++++++++++ ADDING A NEW COMMENT TO BUG ++++++++++++++++++    //http://localhost:5000/api/bugs/65241671c43c2e5dd553db87/test/new
+
+// Step 1 Define the ADD NEW COMMENT Schema    THESE WILL BE THE RULE SET FOR THE INPUTTED DATA
+
+
+// This makes the user have to follow a strict input when entering the appliedFixOnDate
+ const appliedFixOnDateFormat = /^(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])-\d{4}$/; // MM-DD-YYYY format regex
+
+const addNewTestCaseSchema = Joi.object({
+
+  title: Joi.string()
+  .trim()
+  .required()
+  .max(50)
+  .messages({
+    'string.empty': 'Title is required',
+    'string.max': 'Test Case Title Can Only be 50 Characters Long', // if more than 50 characters
+    'any.required': 'Title is required',
+  }),
+
+  userId: 
+  Joi.string()
+  .trim()
+  .required()
+  .messages({ // These are custom messages that will show based on the "type": "string.empty", that throws on an error
+    'string.empty': 'Please Enter a Valid User Id', // If Comment is left blank
+    'any.required': 'Please Enter a Valid User Id', // if the Comment is left uncheck marked and not entered
+  }),
+
+  passed: Joi.string()
+  .trim()
+  .valid(
+    "True",
+    "true",
+    "False",
+    "false"
+  )
+  .required()
+  .messages({ // These are custom messages that will show based on the "type": "string.empty", that throws on an error
+    'string.empty': 'Must Be True or False', // If passed is left blank
+    'any.required': 'Must Be True or False', // if the passed is left uncheck marked and not entered
+  }),
+
+  versionRelease: 
+  Joi.string()
+  .trim()
+  .max(20)
+  .required()
+  .messages({ // These are custom messages that will show based on the "type": "string.empty", that throws on an error
+    'string.empty': 'Please Enter a Version Release', // If versionRelease is left blank
+    'string.max': 'Version Release Can Only be 20 Characters Long', // if more than 20 characters
+    'any.required': 'Please Enter a Version Release', // if the versionRelease is left uncheck marked and not entered     
+  }),
+
+
+  // OPTIONAL DUE TO IT EITHER BEING FAILED AND NOT FIXED
+  appliedFixOnDate: 
+  Joi.string()
+  .regex(appliedFixOnDateFormat)  // Calls in the strict Date format a user must follow   (MM-DD-YYYY)
+  .trim()
+  .messages({ // These are custom messages that will show based on the "type": "string.empty", that throws on an error
+    'string.empty': 'Please Enter a Valid Fix On Date (MM-DD-YYYY)', // If appliedFixOnDate is left blank
+    'string.pattern.base': 'Please Enter a Valid Fix On Date (MM-DD-YYYY)',
+    'any.required': 'Please Enter a Valid Fix On Date',
+  }),
+
+
+
+
+});
+
+
+
+router.put("/:bugId/test/new",    validId("bugId"), validBody(addNewTestCaseSchema),     async (req,res) => {   
+
+  
+  
+    //GETS the users input for the bugs id from the url
+    const bugsId = req.bugId;
+  
+    // For this line to work you have to have the body parser thats up top MIDDLEWARE
+    const newTestCaseFields = req.body  // An .body is an object lets our body read the Bugs id
+    // .body holds all the information/fields the user enters
+  
+
+      // THIS USES THE SAME CODE AS FIND USER BY ID
+      // This line will see if the users input == a _id of a user in the database
+      const userIdFound = await getUserById(newTestCaseFields.userId);
+
+
+      // If user properly enters a valid ID of a USER!
+      // CHECK TO SEE IF THEIR ROLE HAS QUALITY ANALYST
+      if(userIdFound.role.includes("Quality Analyst")){
+            // Success Message
+            debugBug(`User with ID ${userIdFound._id} is a Quality Analyst.\n`); // Message Appears in terminal
+
+          try {
+            // Calls the function and uses the users entered id and body params for the values to pass into function
+            const testCaseCreated = await newTestCase(bugsId, newTestCaseFields);
+    
+            // If the Bug is updated once. It will gain a property called modifiedCount if this is 1 its true
+            if(testCaseCreated.modifiedCount === 1){
+              // Success Message
+              res.status(200).json({TestCase_Created: `Test Case Has Been Added to Bug ${bugsId} by ${userIdFound.fullName}`}); // Success Message
+              debugBug(`Test Case Has Been Added to Bug ${bugsId} by ${userIdFound.fullName}`);
+            }
+            else{
+              // Error Message
+              res.status(404).json({Error: `Bug ${bugsId} Not Found`});
+              debugBug(`Bug ${bugsId} Not Found \n`); // Message Appears in terminal
+            }
+          }
+          catch (err) {
+            res.status(500).json({Error: err.stack});
+          }
+      }
+      else{               // Error Message
+        res.status(404).json({Error: `User ${newTestCaseFields.userId} Is Not a Quality Analyst`});
+        debugBug(`User ${newTestCaseFields.userId} Is Not a Quality Analyst`); // Message Appears in terminal
+      }
+
+  });
+
+// ++++++++++++++++ ADDING A NEW COMMENT TO BUG ++++++++++++++++++
+
+
+
+
+
+
+
+// uuuuuuuuuuuuuuuuu UPDATE A TEST CASE uuuuuuuuuuuuuuuuu  http://localhost:5000/api/bugs/65241671c43c2e5dd553db87/test/65257171f013f1eed470fbf1
+
+
+
+// Step 1 Define the UPDATE TEST CASE Schema    THESE WILL BE THE RULE SET FOR THE INPUTTED DATA
+const updateTestCasesSchema = Joi.object({
+
+  title: Joi.string()
+  .trim()
+  .max(50)
+  .messages({
+    'string.empty': 'Title is required',
+    'string.max': 'Test Case Title Can Only be 50 Characters Long', // if more than 50 characters
+  }),
+
+
+  userId: 
+  Joi.string()
+  .trim()
+  .messages({ // These are custom messages that will show based on the "type": "string.empty", that throws on an error
+    'string.empty': 'Please Enter a Valid User Id', // If userId is left blank
+  }),
+
+
+  passed: Joi.string()
+  .trim()
+  .valid(
+    "True",
+    "true",
+    "False",
+    "false"
+  )
+  .messages({ // These are custom messages that will show based on the "type": "string.empty", that throws on an error
+    'string.empty': 'Must Be True or False', // If passed is left blank
+  }),
+
+
+  versionRelease: 
+  Joi.string()
+  .trim()
+  .max(20)
+  .messages({ // These are custom messages that will show based on the "type": "string.empty", that throws on an error
+    'string.empty': 'Please Enter a Version Release', // If versionRelease is left blank
+    'string.max': 'Version Release Can Only be 20 Characters Long', // if more than 20 characters
+    'any.required': 'Please Enter a Version Release', // if the versionRelease is left uncheck marked and not entered     
+  }),
+
+
+  appliedFixOnDate: 
+  Joi.string()
+  .regex(appliedFixOnDateFormat)  // Calls in the strict Date format a user must follow  MOOCHES OFF OF ADDING FUNCTION  (MM-DD-YYYY)
+  .trim()
+  .messages({ // These are custom messages that will show based on the "type": "string.empty", that throws on an error
+    'string.empty': 'Please Enter a Valid Fix On Date (MM-DD-YYYY)', // If appliedFixOnDate is left blank
+    'string.pattern.base': 'Please Enter a Valid Fix On Date (MM-DD-YYYY)',
+    'any.required': 'Please Enter a Valid Fix On Date',
+  }),
+
+});
+
+
+
+
+router.put("/:bugId/test/:testId",    validId("bugId"), validBody(updateTestCasesSchema),   async (req, res) => {
+
+
+    // This gets the ID from the users input
+    const bugsId = req.bugId; //
+
+
+    const testCasesId= req.params.testId
+
+
+
+
+    // For this line to work you have to have the body parser thats up top MIDDLEWARE
+    const updatedTestCaseFields = req.body;  // An .body is an object in updatedBug lets our body read the users id
+    // .body holds all the information/fields the user enters
+
+
+    try {
+
+
+      // Calls the function and uses the users entered id and body params for the values to pass into function
+      const testCaseUpdated = await updateTestCase(bugsId, testCasesId, updatedTestCaseFields);
+
+      // If the Bug is updated once it will gain a property called modifiedCount if this is 1 its true
+      if(testCaseUpdated.modifiedCount == 1){
+        // Success Message
+        res.status(200).json({Bug_Updated: `Test Case ${testCasesId} updated`,     });
+        //the length of the array of changes. IF array is 0? say message  'No changes made'
+        //Changes_Made_To: changesMadeByUserArray.length > 0 ? changesMadeByUserArray : 'No changes made'}); // Success Message
+        debugBug(`Test Case ${testCasesId} Updated`);
+      }
+      else{
+        // Error Message
+        res.status(404).json({Id_Error: `Bug Id ${bugsId} or Test Case Id ${testCasesId} Not Found`});
+        debugBug(`Bug Id ${bugsId} or Test Case Id ${testCasesId} Not Found \n`); // Message Appears in terminal
+      }
+    }
+    catch (err) {
+      res.status(500).json({Error: err.stack});
+    }
+
+});
+// uuuuuuuuuuuuuuuuu UPDATE A TEST CASE uuuuuuuuuuuuuuuuu
+
+
+
+
+
+
+// -------------------- DELETING TEST CASE FROM A BUG -------------------   http://localhost:5000/api/bugs/65241671c43c2e5dd553db87/test/652567d8be0078c8eacf6685
+
+router.delete("/:bugId/test/:testId",     validId("bugId"),    async (req, res) => {
+
+  try {
+
+  // were are getting a request with the parameters a user puts for the .id
+  const bugsId = req.bugId;
+
+  // Reads just the id of the comment entered
+  const testCasesId = req.params.testId;
+
+
+  // Uses the Bug and Comments Id and plugs it into the deleteComment function
+    const testCaseIsDeleted = await deleteTestCase(bugsId, testCasesId);
+
+    // If the comment is deleted then success
+    if(testCaseIsDeleted){
+      // Success Message
+      res.status(200).json({TestCase_Deleted: `Test Case ${testCasesId} Has Been Deleted`});
+      debugBug(`Test Case ${testCasesId} Has Been Deleted`); // Message Appears in terminal
+    }
+    else{
+      // Error Message
+      res.status(404).json({Error: `Bug Id ${bugsId} Not Found`});
+      debugBug(`Bug ${bugsId} Not Found\n`); // Message Appears in terminal
+    }
+  }
+  catch (err) {
+    res.status(500).json({Error: err.stack});
+  }
+
+
+});
+// -------------------- DELETING TEST CASE FROM A BUG -------------------
+
+
+
+
+// tc tc tc tc tc tc tc tc tc tc tc  tc tc tc TEST CASES tc tc tc tc tc tc  tc tc tc tc tc tc tc //
+
+
+
+
+
+
+
+
+
 
 
 

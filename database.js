@@ -279,19 +279,37 @@ async function updateClassification(bugsId, classifyBugFields){
 // aaaaaaaaaaaaaaaaaa ASSIGN A BUG aaaaaaaaaaaaaaaaaa
 async function assignBugToUser(bugsId, assignedBugFields){
 
+
+
   const dbConnected = await connect();
 
-  // Here we create a new item in the Database called lastUpdated and we set the time it was made at for its value
-  assignedBugFields.lastUpdated = new Date().toLocaleString('en-US');
+  // This will create the array with the users data
+  const assignBugToUserStructure = {
 
-  //This will create a new item called assignedOn which sets the current date its classified on
-  assignedBugFields.assignedOn = new Date().toLocaleString('en-US');
+    // Users inputted Id for the User
+    assignedToUserId: assignedBugFields.assignedToUserId,
+
+    createdOn: new Date().toLocaleString('en-US'),
+
+    assignedOn: new Date().toLocaleString('en-US'),
+
+  };
 
 
-  // gets the inputted id and the input for all the fields due to the:  ... gets all the values from the fields
-  const bugAssigned = await dbConnected.collection("Bug").updateOne({_id: new ObjectId(bugsId)},{$set:{...assignedBugFields}});
 
-  return bugAssigned;
+  // Updates the bug with the new array
+  const createdAssignBugToUser = await dbConnected.collection("Bug").updateOne(
+    { _id: new ObjectId(bugsId) },
+    {
+      $push: {
+        assignedTo: assignBugToUserStructure,
+      },
+    }
+  );
+
+
+  return createdAssignBugToUser;
+
 }
 // aaaaaaaaaaaaaaaaaa ASSIGN A BUG aaaaaaaaaaaaaaaaaa //
 
@@ -529,6 +547,238 @@ export{
 
 
 // cccccccccccccccccccccccccccccccccccccccccccccc COMMENTS cccccccccccccccccccccccccccccccccccccccccccccc // 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// tc tc tc tc tc tc tc tc tc tc tc  tc tc tc TEST CASES tc tc tc tc tc tc  tc tc tc tc tc tc tc //
+
+
+
+
+// ~~~~~~~~~~~~~~~~ FIND ALL TEST CASES ~~~~~~~~~~~~~~~~ //
+async function getAllTestCasesInBug(bugId){
+  // Calling the connect from above method to get the DB
+  const dbConnected = await connect();
+
+  // Finds the Bugs Id
+  const foundBugId = await dbConnected.collection("Bug").findOne({ _id: new ObjectId(bugId) });
+
+
+  return foundBugId; // This will throw our else error
+}
+// ~~~~~~~~~~~~~~~~ FIND ALL TEST CASES ~~~~~~~~~~~~~~~~ //
+
+
+
+
+
+// !!!!!!!!!!!!!!! SEARCHING FOR A TEST CASE IN BUG BY ID !!!!!!!!!!!!!!! //
+async function getTestCaseById(bugsId, testCasesId) {
+  const dbConnected = await connect();
+
+  // Finds the Bugs Id 
+  const foundBugsId = await dbConnected.collection("Bug").findOne({ _id: new ObjectId(bugsId) });
+
+
+  // If the bug is found Do This
+  if (foundBugsId) {  
+    // in the bug we access the array named testCases. Next we use a find to allow us to do a match to check if the entered Id by the user matches the pre-existing testCase Id
+    const foundTestCasesId = foundBugsId.testCases.find(originalTestCaseId => originalTestCaseId._id.toString() === testCasesId);
+
+
+    // If the testCase id is found from above then we return it out to be displayed for user
+    if (foundTestCasesId) {
+      return foundTestCasesId; 
+    } 
+    else {
+      return null; // testCases not found within the bug
+    }
+  }
+
+
+  return null; // Bug with Entered Id is not found throw my else error
+}
+// !!!!!!!!!!!!!!! SEARCHING FOR A TEST CASE IN BUG BY ID !!!!!!!!!!!!!!! //
+
+
+
+
+
+
+// +++++++++++++++++++ NEW TEST CASE  +++++++++++++++++++ // 
+async function newTestCase(bugsId, newTestCaseFields){
+
+  const dbConnected = await connect();
+
+
+    // Create a new ObjectId for the Test Case
+    const testCaseId = new ObjectId();
+
+
+
+// Auto make appliedFixOnDate to "No Fix Date Yet" by default
+let appliedFixOnDate = "No Fix Date Yet";
+
+// Now if the user enters true for passed we will set it to the correctly formatted date they added 
+if (newTestCaseFields.passed === "True" || newTestCaseFields.passed === "true") {
+
+  // If the test case is passed, use the users entered appliedFixOnDate
+  appliedFixOnDate = newTestCaseFields.appliedFixOnDate;
+
+
+  // --- THIS IS ALL HERE TO ALLOW THE CURRENT TIME TO BE ADDED BEHIND USERS INPUTTED DATE TO SHOW WHEN THEY ADDED IT SO THEY DON'T HAVE TO --- //
+    // Get the current time
+    const currentTime = new Date();
+    const hours = currentTime.getHours();
+    const minutes = currentTime.getMinutes();
+    const seconds = currentTime.getSeconds();
+  
+    // Determine whether it's AM or PM
+    const amOrPm = hours >= 12 ? "PM" : "AM";
+  
+    // Format hours in 12-hour format
+    const formattedHours = hours % 12 || 12;
+  
+    // Append the time with AM or PM to the user's date
+    appliedFixOnDate += ` ${formattedHours}:${minutes}:${seconds} ${amOrPm}`;
+  // --- THIS IS ALL HERE TO ALLOW THE CURRENT TIME TO BE ADDED BEHIND USERS INPUTTED DATE TO SHOW WHEN THEY ADDED IT SO THEY DON'T HAVE TO --- //
+
+}
+
+
+
+// This will create the array with the users data
+const testCaseStructure = {
+
+  _id: testCaseId,
+
+  title: newTestCaseFields.title,
+
+  // Users inputted Id for the User that has a Role of Quality Analysis
+  userId: newTestCaseFields.userId,
+
+  createdOn: new Date().toLocaleString('en-US'),
+  passed: newTestCaseFields.passed,
+  versionRelease: newTestCaseFields.versionRelease,
+
+  // This will either plug in the default message or the users input date depending on if passed == true || false
+  appliedFixOnDate: appliedFixOnDate,
+};
+
+
+
+// Updates the bug with the new array
+const createdTestCase = await dbConnected.collection("Bug").updateOne(
+  { _id: new ObjectId(bugsId) },
+  {
+    $push: {
+      testCases: testCaseStructure,
+    },
+  }
+);
+
+
+return createdTestCase;
+
+}
+// +++++++++++++++++++ NEW TEST CASE +++++++++++++++++++ //
+
+
+
+
+
+
+
+
+// uuuuuuuuuuuuuuuuu UPDATE A TEST CASE uuuuuuuuuuuuuuuuu //
+async function updateTestCase(bugsId, testCasesId, updatedTestCaseFields){
+
+  const dbConnected = await connect();
+
+
+  // Create a query to find the specific bug by its _id
+  const findTestCaseInBug = {
+    _id: new ObjectId(bugsId), // Finds the bug Id
+    "testCases._id": new ObjectId(testCasesId)  // Finds The specific Test Case Id The User enters into testCasesId
+  };
+
+
+  // This makes it to where the users inputted fields will now be set to what they enter
+  const updateTestCaseFields = {
+    $set: {}
+  };
+
+
+  // This will loop over every property in the fields (title, passed, versionRelease, appliedFixOnDate)
+  // field is each item the user can input
+  for (const field in updatedTestCaseFields) {
+    updateTestCaseFields.$set[`testCases.$.${field}`] = updatedTestCaseFields[field];
+  }
+
+
+  // Update the matched test case within the array
+  const testCasesUpdated = await dbConnected.collection("Bug").updateOne(findTestCaseInBug, updateTestCaseFields);
+
+
+  return testCasesUpdated;
+}
+// uuuuuuuuuuuuuuuuu UPDATE A TEST CASE uuuuuuuuuuuuuuuuu //
+
+
+
+
+
+
+
+// ------------------ DELETE BUG BY ID ------------------ //
+async function deleteTestCase(bugsId, testCasesId){
+
+  const dbConnected = await connect();
+
+  const deleteTestCaseFromBug = await dbConnected.collection("Bug").updateOne(
+    { _id: new ObjectId(bugsId) },
+    { $pull: { testCases: { _id: new ObjectId(testCasesId) } } }
+  );
+
+
+    return deleteTestCaseFromBug.modifiedCount > 0;
+
+
+}
+// ------------------ DELETE BUG BY ID ------------------ //
+
+
+
+export{
+  getAllTestCasesInBug,
+  getTestCaseById,
+  newTestCase,
+  updateTestCase,
+  deleteTestCase
+};
+
+
+// tc tc tc tc tc tc tc tc tc tc tc  tc tc tc TEST CASES tc tc tc tc tc tc  tc tc tc tc tc tc tc //
+
+
 
 
 
