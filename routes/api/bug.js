@@ -655,6 +655,9 @@ router.get("/:bugId/comment/list",    validId("bugId"),   async (req, res) => {
     const allCommentsInBug = await getAllCommentsInBug(bugId);
 
 
+
+
+
     // Success Message
     if (allCommentsInBug) {
 
@@ -662,6 +665,10 @@ router.get("/:bugId/comment/list",    validId("bugId"),   async (req, res) => {
       res.status(200).json(allCommentsInBug.comments);
       debugBug(`Success! Found All Comments in Bug ${bugId}\n`);
     } 
+    // If there is not even a comment array in the bug say this
+    else if(allCommentsInBug !== allCommentsInBug.comments){
+      res.status(404).json({ Comment_Error: `No Comments Found in Bug ${bugId}` });
+    }
     else {
       res.status(404).json({ Id_Error: `Bug ${bugId} Not Found` });
     }
@@ -900,6 +907,7 @@ router.get("/:bugId/test/list",    validId("bugId"),   async (req, res) => {
     const allTestCasesInBug = await getAllTestCasesInBug(bugId);
 
 
+
     // Success Message
     if (allTestCasesInBug) {
 
@@ -907,6 +915,10 @@ router.get("/:bugId/test/list",    validId("bugId"),   async (req, res) => {
       res.status(200).json(allTestCasesInBug.testCases);
       debugBug(`Success! Found All Test Cases in Bug ${bugId}\n`);
     } 
+    // If there is not even a test case array in the bug say this
+    else if(allTestCasesInBug !== allTestCasesInBug.testCases){
+      res.status(404).json({TestCase_Error: `No Test Cases Found in Bug ${bugId}` });
+    }
     else {
       res.status(404).json({ Id_Error: `Bug ${bugId} Not Found` });
     }
@@ -975,7 +987,7 @@ router.get("/:bugId/test/:testId",     validId("bugId"),    async (req, res) => 
 
 
 // This makes the user have to follow a strict input when entering the appliedFixOnDate
- const appliedFixOnDateFormat = /^(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])-\d{4}$/; // MM-DD-YYYY format regex
+const appliedFixOnDateFormat = /^(0[1-9]|1[0-2])-(0[1-9]|[1-2][0-9]|3[0-1])-\d{4}$/; // MM-DD-YYYY format regex
 
 const addNewTestCaseSchema = Joi.object({
 
@@ -1073,6 +1085,7 @@ router.put("/:bugId/test/new",    validId("bugId"), validBody(addNewTestCaseSche
             if(testCaseCreated.modifiedCount === 1){
               // Success Message
               res.status(200).json({TestCase_Created: `Test Case Has Been Added to Bug ${bugsId} by ${userIdFound.fullName}`}); // Success Message
+              
               debugBug(`Test Case Has Been Added to Bug ${bugsId} by ${userIdFound.fullName}`);
             }
             else{
