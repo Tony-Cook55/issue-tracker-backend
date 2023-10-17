@@ -46,19 +46,53 @@ router.use(express.urlencoded({extended:false}));
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb BUGS bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb //
 
 // ~~~~~~~~~~~~~~~~ FIND ALL BUGS ~~~~~~~~~~~~~~~~ //    http://localhost:5000/api/bugs/list
 router.get("/list", async (req, res) => {
   try {
 
-    // Calls in the getAllBugs() Function from database.js finding all the Bugs
-    const allBugs = await getAllBugs();
+    // ~~~~ OLD WAY TO JUST SEARCH FOR ALL ~~~~
+    // // Calls in the getAllBugs() Function from database.js finding all the Bugs
+    // const allBugs = await getAllBugs();
+    // // Success Message
+    //res.status(200).json(allBugs);
 
-    // Success Message
-    res.status(200).json(allBugs);
 
-    debugBug("Success! Found All Bugs\n"); // Message Appears in terminal
+
+
+
+
+
+
+
+
+
+    debugBug("Success! Found All Bugs"); // Message Appears in terminal
+    debugBug(`The Query string is ${JSON.stringify(req.query)}`); // Shows the query.params being used
   }
   catch (err) { // Error Message
     res.status(500).json({Error: err.stack});

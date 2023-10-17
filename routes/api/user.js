@@ -43,16 +43,197 @@ router.use(express.urlencoded({extended:false}));
 
 
 
+
 // ~~~~~~~~~~~~~~~~ FIND ALL USERS ~~~~~~~~~~~~~~~~ // http://localhost:5000/api/users/list
 router.get("/list", async (req, res) => {
   try {
-    // Calls in the getAllUsers() Function from database.js finding all the Users
-    const allUsers = await getAllUsers();
+    // // Calls in the getAllUsers() Function from database.js finding all the Users
+    // const allUsers = await getAllUsers();
+    // // Success Message
+    // res.status(200).json(allUsers);
 
-    // Success Message
-    res.status(200).json(allUsers);
 
-    debugUser("Success! Found All The Users\n"); // Message Appears in terminal
+    /* ENTER THIS INTO MongoDB Compass to allow the search's to be found --> :
+        db.*~ENTER COLLECTION HERE~*.createIndex(
+          {'$**': 'text'}, 
+          {name:'fullText'}
+        )
+    */
+
+
+    //   ALL KEYS IN ONE LINE   //
+    // Get the Key's from the params query in postman    //pageSize is how many pages you want, pageNumber is the specific page you want
+    //let {keywords, role, maxAge, minAge, sortBy, pageSize, pageNumber} = req.query;
+
+
+    // This stage of the aggregation pipeline is the FILTER it will match what the users input is compared to whats in DB
+    const match = {};
+
+
+
+
+  /* key key key key   KEYWORDS  key key key key */
+
+      // Get the Key from the params query in postman called keywords
+      let {keywords} = req.query;
+
+      // If there are keywords that match do the following
+      if(keywords){
+        // If the keywords entered match
+        match.$text = {$search: keywords};
+      }
+
+  /* key key key key   KEYWORDS  key key key key */
+
+
+
+
+  /* rrrrrrrrrrrrrrrr ROLE rrrrrrrrrrrrrrrr */
+
+      // Get the Key from the params query in postman called role
+      let {role} = req.query;
+
+      // If there is a Role entered then do this
+      if(role){
+        // The entered Role MUST BE EXACT to how it is in the roles array
+        match.role = {$eq: role};
+      }
+  
+  /* rrrrrrrrrrrrrrrr ROLE rrrrrrrrrrrrrrrr */
+
+
+
+
+  /* age age age age  AGE OF USER   age age age age */
+
+      // Get the Key from the params query in postman called maxAge and minAge
+      let {maxAge} = req.query;
+
+      let {minAge} = req.query;
+
+
+      const today = new Date(); // Get current date and time
+      today.setHours(0);
+      today.setMinutes(0);
+      today.setSeconds(0);
+      today.setMilliseconds(0); // Remove time from Date
+
+
+      const pastMaximumDaysOld = new Date(today);
+      pastMaximumDaysOld.setDate(pastMaximumDaysOld.getDate() - maxAge); // Set pastMaximumDaysOld to today minus maxAge
+
+      const pastMinimumDaysOld = new Date(today);
+      pastMinimumDaysOld.setDate(pastMinimumDaysOld.getDate() - minAge); // Set pastMinimumDaysOld to today minus minAge
+
+
+      // Format the date objects in the desired format
+      const formattedPastMaximumDaysOld = pastMaximumDaysOld.toLocaleString('en-US');
+      const formattedPastMinimumDaysOld = pastMinimumDaysOld.toLocaleString('en-US');
+
+
+
+      if(maxAge && minAge){
+        match.usersCreationDate = {$lte:formattedPastMinimumDaysOld, $gte:formattedPastMaximumDaysOld};
+      } else if(minAge){
+        match.usersCreationDate = {$lte:formattedPastMinimumDaysOld};
+      } else if(maxAge) {
+        match.usersCreationDate = {$gte:formattedPastMaximumDaysOld};
+      }
+      debugUser(`The match is ${JSON.stringify(match)}`);
+
+
+  /* age age age age  AGE OF USER   age age age age */
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  /* sssssssssssssssssss SORTING sssssssssssssssssss */
+
+      // // By Default we will sort in ascending order of all these below
+      // let sort = {role: 1, givenName: 1, familyName: 1, createdDate: 1};  // The 1 is ascending  ~  -1 is descending order
+
+
+      // // If the words below are in sortBy it will make sort == and Overwrite that item instead of the default or the last one 
+      // switch(sortBy){
+      //   // If the user adds givenName in the sortBy it will then switch and sort that and OVERWRITE THE last thing
+      //   case "givenName": sort = {givenName : 1}; break;
+
+      //   // If familyName is entered then it will make the familyName be in ascending order
+      //   case "familyName": sort = {familyName : 1}; break;
+
+      //   // If role is entered then it will make the role be in ascending order
+      //   case "role": sort = {role : 1}; break;
+      // }
+
+  /* sssssssssssssssssss SORTING sssssssssssssssssss */
+
+
+
+
+
+  /* ppppppppppppppppppppp PAGE SEARCHES ppppppppppppppppppppp */
+
+      // // Makes users input into an int or just have 50 pages shown
+      // pageSize = parseInt(pageSize) || 50;
+      // // Make the users input into an int or just go to page 1
+      // pageNumber = parseInt(pageNumber) || 1;
+
+      // // When the user goes on another page such as page 2 it the DB needs to not show things on the first page
+      // const skip = (pageNumber - 1) * pageSize;
+      // // This is the amount of pages shown at a time
+      // const limit = pageSize;
+
+  /* ppppppppppppppppppppp PAGE SEARCHES ppppppppppppppppppppp */
+
+
+
+
+
+
+    // This is going to match whats in the param query
+    const pipeline = [
+      {$match: match}, // This matches the users input with whats in DB
+      //{$sort: sort}, // Calls in the sort from the top which by default has the Author ascending
+
+
+      // // This is the page Number outputs that skips the amount of pages and the limit of pages
+      // {$skip: skip},
+      // {$limit: limit},
+    ]
+
+
+
+
+
+  // =============== OUTPUT =============== //
+
+      // Connects to our database to allow us to still search
+      const db = await connect();
+
+      // This looks though the DB pipeline and aggregates it to either all the results or the search
+      const cursor = await db.collection('User').aggregate(pipeline);
+
+      // Sets the cursor's results into an array to be displayed
+      const foundUser = await cursor.toArray();
+
+      // Success Message -  Shows the results in an array 
+      res.status(200).json(foundUser);
+
+  // =============== OUTPUT =============== //
+
+
+    debugUser("Success! Found All The Users"); // Message Appears in terminal
+    debugUser(`The Query string is ${JSON.stringify(req.query)}`); // Shows the query.params being used
   }
   catch (err) { // Error Message
     res.status(500).json({Error: err.stack});
