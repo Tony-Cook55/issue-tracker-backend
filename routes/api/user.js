@@ -45,6 +45,8 @@ router.use(express.urlencoded({extended:false}));
 
 
 // ~~~~~~~~~~~~~~~~ FIND ALL USERS ~~~~~~~~~~~~~~~~ // http://localhost:5000/api/users/list
+
+
 router.get("/list", async (req, res) => {
   try {
     // // Calls in the getAllUsers() Function from database.js finding all the Users
@@ -95,7 +97,7 @@ router.get("/list", async (req, res) => {
 
       // If there is a Role entered then do this
       if(role){
-        // The entered Role MUST BE EXACT to how it is in the roles array
+        // The entered Role ! MUST BE EXACT ! to how it is in the roles array
         match.role = {$eq: role};
       }
   
@@ -126,20 +128,15 @@ router.get("/list", async (req, res) => {
       pastMinimumDaysOld.setDate(pastMinimumDaysOld.getDate() - minAge); // Set pastMinimumDaysOld to today minus minAge
 
 
-      // Format the date objects in the desired format
-      const formattedPastMaximumDaysOld = pastMaximumDaysOld.toLocaleString('en-US');
-      const formattedPastMinimumDaysOld = pastMinimumDaysOld.toLocaleString('en-US');
-
-
 
       if(maxAge && minAge){
-        match.usersCreationDate = {$lte:formattedPastMinimumDaysOld, $gte:formattedPastMaximumDaysOld};
+        match.createdOn = {$lte:pastMinimumDaysOld, $gte:pastMaximumDaysOld};
       } else if(minAge){
-        match.usersCreationDate = {$lte:formattedPastMinimumDaysOld};
+        match.createdOn = {$lte:pastMinimumDaysOld};
       } else if(maxAge) {
-        match.usersCreationDate = {$gte:formattedPastMaximumDaysOld};
+        match.createdOn = {$gte:pastMaximumDaysOld};
       }
-      debugUser(`The match is ${JSON.stringify(match)}`);
+      debugUser(`The Date Searching For is ${JSON.stringify(match)}`);
 
 
   /* age age age age  AGE OF USER   age age age age */
@@ -147,33 +144,31 @@ router.get("/list", async (req, res) => {
 
 
 
-
-  
-
-
-
-
-
-
-
-
   /* sssssssssssssssssss SORTING sssssssssssssssssss */
 
-      // // By Default we will sort in ascending order of all these below
-      // let sort = {role: 1, givenName: 1, familyName: 1, createdDate: 1};  // The 1 is ascending  ~  -1 is descending order
+      // By Default we will sort in ascending order of all of these below
+      let sort = {givenName: 1};  // The 1 is ascending  ~  -1 is descending order
 
+      // Gets the users input in the sortBy field
+      let {sortBy} = req.query;
 
-      // // If the words below are in sortBy it will make sort == and Overwrite that item instead of the default or the last one 
-      // switch(sortBy){
-      //   // If the user adds givenName in the sortBy it will then switch and sort that and OVERWRITE THE last thing
-      //   case "givenName": sort = {givenName : 1}; break;
+      // If the words below are in sortBy it will make sort == and Overwrite that item instead of the default or the last one 
+      switch(sortBy){
+        // If the user adds givenName in the sortBy it will then switch and sort that and OVERWRITE THE last thing
+        case "givenName": sort = {givenName : 1, familyName: 1, createdOn: 1}; break;
 
-      //   // If familyName is entered then it will make the familyName be in ascending order
-      //   case "familyName": sort = {familyName : 1}; break;
+        // If familyName is entered then it will make the familyName be in ascending order
+        case "familyName": sort = {familyName : 1, givenName : 1, createdOn: 1}; break;
 
-      //   // If role is entered then it will make the role be in ascending order
-      //   case "role": sort = {role : 1}; break;
-      // }
+        // If role is entered then it will make the role be in ascending order
+        case "role": sort = {role : 1, givenName : 1, familyName: 1, createdOn: 1}; break;
+
+        // If newest is entered then the users created date will be descending
+        case "newest": sort = { createdOn: -1}; break;
+
+        // If oldest is entered then the users created date will be ascending
+        case "oldest": sort = { createdOn: 1}; break;
+      }
 
   /* sssssssssssssssssss SORTING sssssssssssssssssss */
 
@@ -183,15 +178,18 @@ router.get("/list", async (req, res) => {
 
   /* ppppppppppppppppppppp PAGE SEARCHES ppppppppppppppppppppp */
 
-      // // Makes users input into an int or just have 50 pages shown
-      // pageSize = parseInt(pageSize) || 50;
-      // // Make the users input into an int or just go to page 1
-      // pageNumber = parseInt(pageNumber) || 1;
+    let {pageSize, pageNumber} = req.query;
 
-      // // When the user goes on another page such as page 2 it the DB needs to not show things on the first page
-      // const skip = (pageNumber - 1) * pageSize;
-      // // This is the amount of pages shown at a time
-      // const limit = pageSize;
+      // Makes users input into an int or just have 5 pages shown
+      pageSize = parseInt(pageSize) || 5;
+      // Make the users input into an int or just go to page 1
+      pageNumber = parseInt(pageNumber) || 1;
+
+
+      // When the user goes on another page such as page 2 it the DB needs to not show things on the first page
+      const skip = (pageNumber - 1) * pageSize;
+      // This is the amount of pages shown at a time
+      const limit = pageSize;
 
   /* ppppppppppppppppppppp PAGE SEARCHES ppppppppppppppppppppp */
 
@@ -202,13 +200,16 @@ router.get("/list", async (req, res) => {
 
     // This is going to match whats in the param query
     const pipeline = [
-      {$match: match}, // This matches the users input with whats in DB
-      //{$sort: sort}, // Calls in the sort from the top which by default has the Author ascending
+       // This matches the users input with whats in DB
+      {$match: match},
+
+      // Calls in the sort from the top which by default has the givenName ascending
+      {$sort: sort}, 
 
 
-      // // This is the page Number outputs that skips the amount of pages and the limit of pages
-      // {$skip: skip},
-      // {$limit: limit},
+      // This is the page Number outputs that skips the amount of pages and the limit of pages shown
+      {$skip: skip},
+      {$limit: limit},
     ]
 
 

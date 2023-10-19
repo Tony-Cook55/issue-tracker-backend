@@ -84,7 +84,196 @@ router.get("/list", async (req, res) => {
 
 
 
+    //   ALL KEYS IN ONE LINE   //
+    // Get the Key's from the params query in postman    //pageSize is how many pages you want, pageNumber is the specific page you want
+    //let {keywords, classification, maxAge, minAge, closed, sortBy, pageSize, pageNumber} = req.query;
 
+
+    // This stage of the aggregation pipeline is the FILTER it will match what the users input is compared to whats in DB
+    const match = {};
+
+
+
+
+  /* key key key key   KEYWORDS  key key key key */
+
+      // Get the Key from the params query in postman called keywords
+      let {keywords} = req.query;
+
+      // If there are keywords that match do the following
+      if(keywords){
+        // If the keywords entered match
+        match.$text = {$search: keywords};
+      }
+
+  /* key key key key   KEYWORDS  key key key key */
+
+
+
+
+  /* ccccccccccccccccc CLASSIFICATION ccccccccccccccccc */
+
+      // Get the Key from the params query in postman called role
+      let {classification} = req.query;
+
+      // If there is a Role entered then do this
+      if(classification){
+        // The entered Role ! MUST BE EXACT ! to how it is in the roles array
+        match.classification = {$eq: classification};
+      }
+  
+  /* ccccccccccccccccc CLASSIFICATION ccccccccccccccccc */
+
+
+
+
+  /* age age age age  AGE OF BUG   age age age age */
+
+      // Get the Key from the params query in postman called maxAge and minAge
+      let {maxAge} = req.query;
+
+      let {minAge} = req.query;
+
+
+      const today = new Date(); // Get current date and time
+      today.setHours(0);
+      today.setMinutes(0);
+      today.setSeconds(0);
+      today.setMilliseconds(0); // Remove time from Date
+
+
+      const pastMaximumDaysOld = new Date(today);
+      pastMaximumDaysOld.setDate(pastMaximumDaysOld.getDate() - maxAge); // Set pastMaximumDaysOld to today minus maxAge
+
+      const pastMinimumDaysOld = new Date(today);
+      pastMinimumDaysOld.setDate(pastMinimumDaysOld.getDate() - minAge); // Set pastMinimumDaysOld to today minus minAge
+
+
+
+      if(maxAge && minAge){
+        match.createdOn = {$lte:pastMinimumDaysOld, $gte:pastMaximumDaysOld};
+      } else if(minAge){
+        match.createdOn = {$lte:pastMinimumDaysOld};
+      } else if(maxAge) {
+        match.createdOn = {$gte:pastMaximumDaysOld};
+      }
+      debugBug(`The Date Searching For is ${JSON.stringify(match)}`);
+
+
+  /* age age age age  AGE OF BUG   age age age age */
+
+
+
+
+
+  /* ??????????????????? IS BUG CLOSED ??????????????????? */
+
+      // Get the Key from the params query in postman called closed
+      let {closed} = req.query;
+
+      // If the user enters Either True or False then it will show corresponding Bugs
+      if(closed){
+        match.closed = {$eq: closed};
+      }
+  
+  /* ??????????????????? IS BUG CLOSED ??????????????????? */
+
+
+
+
+
+
+  /* sssssssssssssssssss SORTING sssssssssssssssssss */
+
+      // By Default we will sort in ascending order of all of these below
+      let sort = {createdOn: -1, bugsCreationDate: -1};  // The 1 is ascending  ~  -1 is descending order
+
+      // Gets the users input in the sortBy field
+      let {sortBy} = req.query;
+
+      // If the words below are in sortBy it will make sort == and Overwrite that item instead of the default or the last one 
+      switch(sortBy){
+
+        // If the user adds title in the sortBy it will then switch and sort that and OVERWRITE THE last thing
+        case "title": sort = {title : 1, createdOn: -1}; break;
+
+        // If classification is entered then it will make the classification be in ascending order
+        case "classification": sort = {classification : 1, createdOn : -1}; break;
+
+        // If assignedTo is entered then it will make the assignedTo be in ascending order
+        case "assignedTo": sort = {createdOn : -1, assignedOn : -1}; break;
+
+        // If createdBy is entered then the users created date will be descending
+        case "createdBy": sort = { "bugAdded.bugAddedByUserFullName": 1, "bugAdded.createdOn": -1}; break;
+
+        // If newest is entered then the users created date will be descending
+        case "newest": sort = { createdOn: -1}; break;
+
+        // If oldest is entered then the users created date will be ascending
+        case "oldest": sort = { createdOn: 1}; break;
+      }
+
+  /* sssssssssssssssssss SORTING sssssssssssssssssss */
+
+
+
+
+
+  /* ppppppppppppppppppppp PAGE SEARCHES ppppppppppppppppppppp */
+
+    let {pageSize, pageNumber} = req.query;
+
+      // Makes users input into an int or just have 5 pages shown
+      pageSize = parseInt(pageSize) || 5;
+      // Make the users input into an int or just go to page 1
+      pageNumber = parseInt(pageNumber) || 1;
+
+
+      // When the user goes on another page such as page 2 it the DB needs to not show things on the first page
+      const skip = (pageNumber - 1) * pageSize;
+      // This is the amount of pages shown at a time
+      const limit = pageSize;
+
+  /* ppppppppppppppppppppp PAGE SEARCHES ppppppppppppppppppppp */
+
+
+
+
+
+
+    // This is going to match whats in the param query
+    const pipeline = [
+       // This matches the users input with whats in DB
+      {$match: match},
+
+      // Calls in the sort from the top which by default has the bugsCreationDate ascending
+      {$sort: sort}, 
+
+
+      // This is the page Number outputs that skips the amount of pages and the limit of pages shown
+      {$skip: skip},
+      {$limit: limit},
+    ]
+
+
+
+
+
+  // =============== OUTPUT =============== //
+
+      // Connects to our database to allow us to still search
+      const db = await connect();
+
+      // This looks though the DB pipeline and aggregates it to either all the results or the search
+      const cursor = await db.collection('Bug').aggregate(pipeline);
+
+      // Sets the cursor's results into an array to be displayed
+      const foundBug = await cursor.toArray();
+
+      // Success Message -  Shows the results in an array 
+      res.status(200).json(foundBug);
+
+  // =============== OUTPUT =============== //
 
 
 
@@ -183,6 +372,16 @@ const addNewBugSchema = Joi.object({
         'string.valid': 'Invalid Step To Reproduce provided',
       }),
     ),
+    
+
+
+    bugAddedByUser: Joi.string()
+    .trim()
+    .required()
+    .messages({
+      'string.empty': 'User Adding Bug is required',
+      'any.required': 'User Adding Bug is required',
+    }),
 
 });
 
@@ -208,7 +407,17 @@ router.post("/new",     validBody(addNewBugSchema),    async (req, res) => {
       res.status(400).json({Reproduction_Steps_Error: "Please enter data for the bugs Reproduction Steps"});
     }
     else{  // !!!!!! SUCCESS !!!!!!
-      try { // IF we have valid data for a new user do this
+      try { 
+
+        // THIS USES THE SAME CODE AS FIND USER BY ID
+        // This line will see if the users input in bugAddedByUser == a _id of a user in the database
+        const userIdFound = await getUserById(newBug.bugAddedByUser);
+
+        // If a user enters a CORRECT USER ID IN bugAddedByUser then go ahead and add the bug
+        if(userIdFound){
+          // THIS GETS THE USERS FULL NAME AND ADDS IT INTO OUR BUG
+          newBug.bugAddedByUserFullName = userIdFound.fullName;
+
 
           // ACTUALLY ADDS THE USERS INPUT HERE
             // Adds the users input from the body and plugs it into the addNewBug Function
@@ -216,17 +425,26 @@ router.post("/new",     validBody(addNewBugSchema),    async (req, res) => {
           // ACTUALLY ADDS THE USERS INPUT HERE
 
 
-        // If user adding a New Bug is true it will be known as acknowledged
-        if(addingNewBug.acknowledged == true){
-          // Success Message
-          res.status(200).json({Bug_Added: `Bug ${newBug.title} Added With An Id of ${addingNewBug.insertedId}`});
-          debugBug(`Bug ${newBug.title}  Added With An Id of ${addingNewBug.insertedId} \n`); // Message Appears in terminal
-        }
+          // If user adding a New Bug is true it will be known as acknowledged
+          if(addingNewBug.acknowledged == true){
+            // Success Message
+            res.status(200).json({Bug_Added: `Bug ${newBug.title} Added With An Id of ${addingNewBug.insertedId} by ${userIdFound.fullName}`});
+            debugBug(`Bug ${newBug.title}  Added With An Id of ${addingNewBug.insertedId} by ${userIdFound.fullName}`); // Message Appears in terminal
+          }
+          else{
+            // Error Message
+            res.status(400).json({Error: `Bug ${newBug.title} Not Added`});
+            debugBug(`Bug ${newBug.title} Not Added  \n`); // Message Appears in terminal
+          }
+
+
+        } // This else statement is if the user enters a bad User id for bugAddedByUser
         else{
-          // Error Message
-          res.status(400).json({Error: `Bug ${newBug.title} Not Added`});
-          debugBug(`Bug ${newBug.title} Not Added  \n`); // Message Appears in terminal
+          res.status(400).json({Error: `Users Id Trying To Add Bug Is Invalid`});
+          debugBug(`Users Id Trying To Add Bug Is Invalid`); // Message Appears in terminal
         }
+
+
       }
       catch (err) {
         res.status(500).json({Error: err.stack});
@@ -441,6 +659,7 @@ const assignBugSchema = Joi.object({
   assignedToUserId: Joi.string()
   .trim()
   .required(),
+
 });
 
 
@@ -469,16 +688,20 @@ router.put("/:bugId/assign",   validId("bugId"), validBody(assignBugSchema),    
       // This line will see if the users input == a _id of a user in the database
       const userIdFound = await getUserById(assignBugFields.assignedToUserId);
 
+
+
       // If user properly enters the a valid ID of a USER!
       // IF TRUE GO AHEAD AND SET THE INPUTTED CORRECT USER ID TO THE BUG SPECIFIED IN THE URL
       if(userIdFound){
-            // Success Message
-            debugBug(`Success Got Users Id: ${userIdFound} Now Assigning Bug \n`); // Message Appears in terminal
-
             // ------ SUCCESS ------
           try {
+
+
+
             // Sets the bugsId and the users inputted fields into the assignBugToUser Function
             const bugAssigned = await assignBugToUser(bugsId, assignBugFields);
+
+
 
             // If the Bugs bugAssigned is updated once. It will gain a property called modifiedCount if this is 1 its true
             if(bugAssigned.modifiedCount == 1){
@@ -497,9 +720,7 @@ router.put("/:bugId/assign",   validId("bugId"), validBody(assignBugSchema),    
           }
     } // end of userIdFound Success If statement
     else{
-      // IF THERE IS NO VALID USER ID FOUND BASED ON THE INPUT ERROR SHOWING THE ID THEY INPUTTED
-      res.status(404).json({Error:`User ${assignBugFields.assignedToUserId} Not Found`});
-      debugBug(`User ${assignBugFields.assignedToUserId} Not Found\n`); // Message Appears in terminal
+      return null;
     }
   }
 

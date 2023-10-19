@@ -82,6 +82,9 @@ async function addNewUser(newUser){
   const dbConnected = await connect();
 
 
+  // This date is for searching purposes
+  newUser.createdOn = new Date();
+
   // Here we create a new item in the database called usersCreationDate and we set the time it was made at for its value
   //newUser.usersCreationDate = new Date().toDateString();
   newUser.usersCreationDate = new Date().toLocaleString('en-US'); //.toLocaleString('en-US')
@@ -122,8 +125,11 @@ async function updateUser(usersId, updatedUserFields){
   const dbConnected = await connect();
 
 
+  // This date is for searching purposes
+  updatedUserFields.lastUpdated = new Date();
+
   // Here we create a new item in the Database called lastUpdated and we set the time it was made at for its value
-  updatedUserFields.lastUpdated = new Date().toLocaleString('en-US');
+  updatedUserFields.userLastUpdated = new Date().toLocaleString('en-US');
 
 
   // gets the inputted id and the input for all the fields due to the:  ... gets all the values from the fields
@@ -220,11 +226,25 @@ async function addNewBug(newBug){
   const dbConnected = await connect();
 
 
-  // Here we create a new item in the database called usersCreationDate and we set the time it was made at for its value
-  //newUser.usersCreationDate = new Date().toDateString();
-  newBug.bugsCreationDate = new Date().toLocaleString('en-US');
+  // This is all of the data the user inputs into the body params
+  const bugAddedData = {
+    bugAddedByUserFullName: newBug.bugAddedByUserFullName,
+    bugAddedByUser: newBug.bugAddedByUser,
+    createdOn: new Date(),
+    bugsCreationDate: new Date().toLocaleString('en-US'),
+  };
 
 
+  // Add the bugAddedData to the newBug object as an array to allow it to be inside an array
+  newBug.bugAdded = [bugAddedData];
+
+
+  // Remove the individual properties from newBug to be inside of the array
+  delete newBug.bugAddedByUserFullName;
+  delete newBug.bugAddedByUser;
+
+
+  // Insert the newBug into the database
   const addingNewBug = await dbConnected.collection("Bug").insertOne(newBug);
 
 
@@ -239,9 +259,11 @@ async function updateBug(bugsId, updateBugFields){
 
   const dbConnected = await connect();
 
+  // This date is for searching purposes
+  updateBugFields.lastUpdated = new Date();
 
   // Here we create a new item in the Database called lastUpdated and we set the time it was made at for its value
-  updateBugFields.lastUpdated = new Date().toLocaleString('en-US');
+  updateBugFields.bugLastUpdated = new Date().toLocaleString('en-US');
 
 
   // gets the inputted id and the input for all the fields due to the:  ... gets all the values from the fields
@@ -259,12 +281,18 @@ async function updateClassification(bugsId, classifyBugFields){
 
   const dbConnected = await connect();
 
+  // This date is for searching purposes
+  classifyBugFields.lastUpdated = new Date();
 
   // Here we create a new item in the Database called lastUpdated and we set the time it was made at for its value
-  classifyBugFields.lastUpdated = new Date().toLocaleString('en-US');
+  classifyBugFields.bugLastUpdated = new Date().toLocaleString('en-US');
+
+
+  // This date is for searching purposes
+  classifyBugFields.classifiedOn = new Date();
 
   //This will create a new item called classifiedOn which sets the current date its classified on
-  classifyBugFields.classifiedOn = new Date().toLocaleString('en-US');
+  classifyBugFields.bugClassifiedOn = new Date().toLocaleString('en-US');
 
   // gets the inputted id and the input for all the fields due to the:  ... gets all the values from the fields
   const bugClassificationUpdated = await dbConnected.collection("Bug").updateOne({_id: new ObjectId(bugsId)},{$set:{...classifyBugFields}});
@@ -280,25 +308,18 @@ async function updateClassification(bugsId, classifyBugFields){
 async function assignBugToUser(bugsId, assignedBugFields){
 
 
-
   const dbConnected = await connect();
 
-  // This will create the array with the users data
+  // This will create the array with the user's data
   const assignBugToUserStructure = {
-
-    // Users inputted Id for the User
     assignedToUserId: assignedBugFields.assignedToUserId,
-
-    createdOn: new Date().toLocaleString('en-US'),
-
-    assignedOn: new Date().toLocaleString('en-US'),
-
+    assignedByUser: userIdFound.fullName, // Assign the full name of the user
+    assignedOn: new Date(),
+    bugAssignedOn: new Date().toLocaleString('en-US'),
   };
 
-
-
-  // Updates the bug with the new array
-  const createdAssignBugToUser = await dbConnected.collection("Bug").updateOne(
+  // Update the bug by pushing the new assignment data into the 'assignedTo' array
+  const updatedBug = await dbConnected.collection("Bug").updateOne(
     { _id: new ObjectId(bugsId) },
     {
       $push: {
@@ -307,8 +328,7 @@ async function assignBugToUser(bugsId, assignedBugFields){
     }
   );
 
-
-  return createdAssignBugToUser;
+  return updatedBug;
 
 }
 // aaaaaaaaaaaaaaaaaa ASSIGN A BUG aaaaaaaaaaaaaaaaaa //
@@ -322,11 +342,20 @@ async function closeBug(bugsId, closedFields){
 
   const dbConnected = await connect();
 
+
+  // This date is for searching purposes
+  closedFields.lastUpdated = new Date();
+
   // Here we create a new item in the Database called lastUpdated and we set the time it was made at for its value
-  closedFields.lastUpdated = new Date().toLocaleString('en-US');
+  closedFields.bugLastUpdated = new Date().toLocaleString('en-US');
+
+
+
+  // This date is for searching purposes
+  closedFields.closedOn = new Date();
 
   //This will create a new item called assignedOn which sets the current date its classified on
-  closedFields.closedOn = new Date().toLocaleString('en-US');
+  closedFields.bugClosedOn = new Date().toLocaleString('en-US');
 
 
   // gets the inputted id and the input for all the fields due to the:  ... gets all the values from the fields
