@@ -109,9 +109,7 @@ router.get("/list", async (req, res) => {
   /* age age age age  AGE OF USER   age age age age */
 
       // Get the Key from the params query in postman called maxAge and minAge
-      let {maxAge} = req.query;
-
-      let {minAge} = req.query;
+      let {maxAge, minAge} = req.query;
 
 
       const today = new Date(); // Get current date and time
@@ -154,13 +152,13 @@ router.get("/list", async (req, res) => {
 
       // If the words below are in sortBy it will make sort == and Overwrite that item instead of the default or the last one 
       switch(sortBy){
-        // If the user adds givenName in the sortBy it will then switch and sort that and OVERWRITE THE last thing
+        // If the user adds givenName in the sortBy it will make   given name ascending, family name ascending, created date ascending
         case "givenName": sort = {givenName : 1, familyName: 1, createdOn: 1}; break;
 
-        // If familyName is entered then it will make the familyName be in ascending order
+        // If familyName is entered then it will make   family name ascending, given name ascending, created date ascending
         case "familyName": sort = {familyName : 1, givenName : 1, createdOn: 1}; break;
 
-        // If role is entered then it will make the role be in ascending order
+        // If role is entered then it will make role ascending, given name ascending, family name ascending, created date ascending
         case "role": sort = {role : 1, givenName : 1, familyName: 1, createdOn: 1}; break;
 
         // If newest is entered then the users created date will be descending
@@ -527,7 +525,7 @@ router.post("/login",   validBody(loginUserSchema),   async (req, res) => {
 
 
 
-        //This targets if the email is correct if not do error
+        //This targets if the email is NOT correct if it is LOG USER IN
         if (!usersLoggedIn) {
           // Handle the case where the user is not found in the database
           res.status(400).json({ Invalid_Email: 'User Not Found. Please Enter a Valid Email.' });
@@ -538,6 +536,7 @@ router.post("/login",   validBody(loginUserSchema),   async (req, res) => {
             // If usersLoginInformation Matches within our Database welcome back!  AND
             // If the entered password is the same as the password thats encrypted in database == Success
             if(usersLoggedIn && await bcrypt.compare(usersLoginInformation.password, usersLoggedIn.password)){
+
               // Success Message
               res.status(200).json({Welcome_Back: `Welcome ${usersLoggedIn.fullName} You Are Successfully Logged In`});
               debugUser(`Welcome ${usersLoggedIn.fullName} You Are Successfully Logged In`); // Message Appears in terminal

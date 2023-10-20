@@ -109,9 +109,34 @@ async function loginUser(userLogin){
   // Finding a user based on their email entered
   const userLoggedIn = await dbConnected.collection("User").findOne({email: userLogin.email});
 
+
+  // If the userLoggedIn Is FOUND AND CORRECT Go through with adding this to That Users Document
+  if (userLoggedIn) {
+    // If the user is found, update the lastTimeLoggedIn field
+    const currentDate = new Date();
+    const currentDateReadable = new Date().toLocaleString('en-US');
+  
+    // This is updating the User by setting 2 new values and giving them the 2 dates the normal and readable version
+    await dbConnected.collection("User").updateOne(
+      { _id: new ObjectId(userLoggedIn._id) },
+      {
+        $set: {
+          // The left light blue is the new name of the value and we are setting it to the 2 dates
+          lastTimeLoggedIn: currentDate,
+          lastTimeUserLoggedIn: currentDateReadable
+        },
+      }
+    );
+
+    // Return the updated user
+    return { ...userLoggedIn, lastTimeLoggedIn: currentDate, lastTimeUserLoggedIn: currentDateReadable };
+  }
+
+
+
+
   // It will either find or not find the user based on the inputs
   return userLoggedIn;
-
 }
 // LLLLLLLLLLLLLLLLLLL USERS LOGIN LLLLLLLLLLLLLLLLLLL //
 
@@ -314,7 +339,7 @@ async function assignBugToUser(bugsId, assignedBugFields){
 
 
   // Find the user by their assignedToUserId
-  const assignedByUser = await dbConnected.collection("User").findOne({ _id: new ObjectId(assignedBugFields.assignedToUserId) });
+  const assignedToUser = await dbConnected.collection("User").findOne({ _id: new ObjectId(assignedBugFields.assignedToUserId) });
 
 
 
@@ -323,7 +348,7 @@ async function assignBugToUser(bugsId, assignedBugFields){
   // This will create the array with the user's data
   const assignBugToUserStructure = {
     assignedToUserId: assignedBugFields.assignedToUserId,
-    assignedByUser: assignedByUser.fullName, // Assign the full name of the user
+    assignedToUser: assignedToUser.fullName, // Assign the full name of the user
     assignedOn: new Date(),
     bugAssignedOn: new Date().toLocaleString('en-US'),
   };

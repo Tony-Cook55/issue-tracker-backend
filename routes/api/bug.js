@@ -83,7 +83,6 @@ router.get("/list", async (req, res) => {
 
 
 
-
     //   ALL KEYS IN ONE LINE   //
     // Get the Key's from the params query in postman    //pageSize is how many pages you want, pageNumber is the specific page you want
     //let {keywords, classification, maxAge, minAge, closed, sortBy, pageSize, pageNumber} = req.query;
@@ -111,6 +110,7 @@ router.get("/list", async (req, res) => {
 
 
 
+
   /* ccccccccccccccccc CLASSIFICATION ccccccccccccccccc */
 
       // Get the Key from the params query in postman called role
@@ -123,6 +123,7 @@ router.get("/list", async (req, res) => {
       }
   
   /* ccccccccccccccccc CLASSIFICATION ccccccccccccccccc */
+
 
 
 
@@ -184,6 +185,8 @@ router.get("/list", async (req, res) => {
 
       // If the user enters Either True or False then it will show corresponding Bugs
       if(closed){
+        // If the user enters either "True" or "False" (regardless of case), it will show corresponding bugs
+        closed = closed.toLowerCase() === "true" ? "True" : "False"; // If you get rid of auto capitalize get rid of this as well
         match.closed = {$eq: closed};
       }
   
@@ -196,35 +199,37 @@ router.get("/list", async (req, res) => {
 
   /* sssssssssssssssssss SORTING sssssssssssssssssss */
 
-      // By Default we will sort in ascending order of all of these below
-      let sort = {createdOn: -1, bugsCreationDate: -1};  // The 1 is ascending  ~  -1 is descending order
+      // By Default we will sort The dates by newest Bugs added from the bugAdded Array in DB
+      let sort = {"bugAdded.createdOn": -1};  // The 1 is ascending  ~  -1 is descending order
 
       // Gets the users input in the sortBy field
       let {sortBy} = req.query;
 
-      // If the words below are in sortBy it will make sort == and Overwrite that item instead of the default or the last one 
+      // If the words below are in sortBy it will make sort == and OVERWRITE that item instead of the default or the last one 
       switch(sortBy){
 
-        // If the user adds title in the sortBy it will then switch and sort that and OVERWRITE THE last thing
+        // If the user adds title in the sortBy it will then make title ascending, created date descending
         case "title": sort = {title : 1, createdOn: -1}; break;
 
-        // If classification is entered then it will make the classification be in ascending order
-        case "classification": sort = {classification : 1, createdOn : -1}; break;
+        // If classification is entered then it will make classification ascending, created date descending
+        case "classification": sort = {classification : 1, classifiedOn : 1, "bugAdded.createdOn": -1}; break;
 
-        // If assignedTo is entered then it will make the assignedTo be in ascending order
-        case "assignedTo": sort = {createdOn : -1, assignedOn : -1}; break;
+        // If assignedTo is entered then it will make assigned to name ascending, created date descending
+        case "assignedTo": sort = {"assignedTo.assignedToUser": 1, "assignedTo.assignedOn": -1}; break;
 
-        // If createdBy is entered then the users created date will be descending
+        // If createdBy is entered then it will make  created by name, created date descending
+        // Searching in the array named bugAdded then getting the values .bugAddedByUserFullName & .createdOn
         case "createdBy": sort = { "bugAdded.bugAddedByUserFullName": 1, "bugAdded.createdOn": -1}; break;
 
         // If newest is entered then the users created date will be descending
-        case "newest": sort = { createdOn: -1}; break;
+        case "newest": sort = { "bugAdded.createdOn": -1}; break;
 
         // If oldest is entered then the users created date will be ascending
-        case "oldest": sort = { createdOn: 1}; break;
+        case "oldest": sort = { "bugAdded.createdOn": 1}; break;
       }
 
   /* sssssssssssssssssss SORTING sssssssssssssssssss */
+
 
 
 
@@ -234,9 +239,9 @@ router.get("/list", async (req, res) => {
 
     let {pageSize, pageNumber} = req.query;
 
-      // Makes users input into an int or just have 5 pages shown
+      // Makes users input into an int or just default to 5 pages shown
       pageSize = parseInt(pageSize) || 5;
-      // Make the users input into an int or just go to page 1
+      // Make the users input into an int or just go to page 1 by default
       pageNumber = parseInt(pageNumber) || 1;
 
 
@@ -252,14 +257,12 @@ router.get("/list", async (req, res) => {
 
 
 
+
+  /* [][][][][][][][][][][][] PIPELINE [][][][][][][][][][][][] */
     // This is going to match whats in the param query
     const pipeline = [
       // This matches the users input with whats in DB
       {$match: match},
-
-
-
-
 
 
       // Calls in the sort from the top which by default has the bugsCreationDate ascending
@@ -270,6 +273,7 @@ router.get("/list", async (req, res) => {
       {$skip: skip},
       {$limit: limit},
     ];
+  /* [][][][][][][][][][][][] PIPELINE [][][][][][][][][][][][] */
 
 
 
@@ -290,9 +294,6 @@ router.get("/list", async (req, res) => {
       res.status(200).json(foundBug);
 
   // =============== OUTPUT =============== //
-
-
-
 
 
 
@@ -713,41 +714,40 @@ router.put("/:bugId/assign",   validId("bugId"), validBody(assignBugSchema),    
       const userIdFound = await getUserById(assignBugFields.assignedToUserId);
 
 
-
-      // If user properly enters the a valid ID of a USER!
-      // IF TRUE GO AHEAD AND SET THE INPUTTED CORRECT USER ID TO THE BUG SPECIFIED IN THE URL
-      if(userIdFound){
-            // ------ SUCCESS ------
-          try {
-
-
-
-            // Sets the bugsId and the users inputted fields into the assignBugToUser Function
-            const bugAssigned = await assignBugToUser(bugsId, assignBugFields);
+        // If user properly enters the a valid ID of a USER!
+        // IF TRUE GO AHEAD AND SET THE INPUTTED CORRECT USER ID TO THE BUG SPECIFIED IN THE URL
+        if(userIdFound){
+              // ------ SUCCESS ------
+            try {
 
 
 
-            // If the Bugs bugAssigned is updated once. It will gain a property called modifiedCount if this is 1 its true
-            if(bugAssigned.modifiedCount == 1){
-              // Success Message
-              res.status(200).json({Bug_Assigned: `Bug ${bugsId} Assigned to User ${userIdFound.fullName}`, Users_Id: `${userIdFound.fullName}'s _id = ${userIdFound._id}`}); // Success Message
-              debugBug(`Bug ${bugsId} Assigned to User ${userIdFound.fullName}`);
+              // Sets the bugsId and the users inputted fields into the assignBugToUser Function
+              const bugAssigned = await assignBugToUser(bugsId, assignBugFields);
+
+
+
+              // If the Bugs bugAssigned is updated once. It will gain a property called modifiedCount if this is 1 its true
+              if(bugAssigned.modifiedCount == 1){
+                // Success Message
+                res.status(200).json({Bug_Assigned: `Bug ${bugsId} Assigned to User ${userIdFound.fullName}`, Users_Id: `${userIdFound.fullName}'s _id = ${userIdFound._id}`}); // Success Message
+                debugBug(`Bug ${bugsId} Assigned to User ${userIdFound.fullName}`);
+              }
+              else{
+                // Error Message
+                res.status(404).json({Error: `Bug ${bugsId} Not Found`});
+                debugBug(`Bug ${bugsId} Not Found \n`); // Message Appears in terminal
+              }
             }
-            else{
-              // Error Message
-              res.status(404).json({Error: `Bug ${bugsId} Not Found`});
-              debugBug(`Bug ${bugsId} Not Found \n`); // Message Appears in terminal
+            catch (err) {
+              res.status(500).json({Error: err.stack});
             }
-          }
-          catch (err) {
-            res.status(500).json({Error: err.stack});
-          }
-    } // end of userIdFound Success If statement
-    else{
-      res.status(404).json({Id_Error: `User Id ${assignBugFields.assignedToUserId} Not Found`});
-      debugBug(`User Id ${assignBugFields.assignedToUserId} Not Found`);
-    }
-  }
+      } // end of userIdFound Success If statement
+      else{
+        res.status(404).json({Id_Error: `User Id ${assignBugFields.assignedToUserId} Not Found`});
+        debugBug(`User Id ${assignBugFields.assignedToUserId} Not Found`);
+      }
+  } // end of main else statement
 
 });
 // aaaaaaaaaaaaaaaaaa ASSIGN A BUG aaaaaaaaaaaaaaaaaa
@@ -769,12 +769,21 @@ const closeBugSchema = Joi.object({
 
   closed: Joi.string()
   .trim()
-  .valid(  // User must enter True or false
-    "True",
-    "true",
-    "False",
-    "false",
-  )
+  // .valid(  // User must enter True or false
+  //   "True",
+  //   "true",
+  //   "False",
+  //   "false",
+  // )
+    // Witchcraft that will turn the users input into a capital letter to allow us to search using capitalize later
+    .custom((value, helpers) => {
+      const capitalizedValue = value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+      if (["True", "False"].includes(capitalizedValue)) {
+        return capitalizedValue;
+      } else {
+        return helpers.message('Please Enter True or False');
+      }
+    })
   .required(),
 });
 
