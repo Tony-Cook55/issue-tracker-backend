@@ -130,34 +130,45 @@ router.get("/list", async (req, res) => {
   /* age age age age  AGE OF BUG   age age age age */
 
       // Get the Key from the params query in postman called maxAge and minAge
-      let {maxAge} = req.query;
+      let {maxAge, minAge} = req.query;
 
-      let {minAge} = req.query;
+      maxAge = parseInt(maxAge);
+      minAge = parseInt(minAge);
 
 
-      const today = new Date(); // Get current date and time
+      const today = new Date(); // Get the current date and time
       today.setHours(0);
       today.setMinutes(0);
       today.setSeconds(0);
       today.setMilliseconds(0); // Remove time from Date
-
+      
 
       const pastMaximumDaysOld = new Date(today);
       pastMaximumDaysOld.setDate(pastMaximumDaysOld.getDate() - maxAge); // Set pastMaximumDaysOld to today minus maxAge
-
+      
       const pastMinimumDaysOld = new Date(today);
       pastMinimumDaysOld.setDate(pastMinimumDaysOld.getDate() - minAge); // Set pastMinimumDaysOld to today minus minAge
-
-
-
-      if(maxAge && minAge){
-        match.createdOn = {$lte:pastMinimumDaysOld, $gte:pastMaximumDaysOld};
-      } else if(minAge){
-        match.createdOn = {$lte:pastMinimumDaysOld};
-      } else if(maxAge) {
-        match.createdOn = {$gte:pastMaximumDaysOld};
+      
+      
+      // Does the corresponding result for maxAge and minAge
+      if (maxAge && minAge) {
+        // This match here is going inside of my array named bugAdded then getting the createdOn date
+        match['bugAdded.createdOn'] = {
+          $lte: pastMinimumDaysOld,
+          $gte: pastMaximumDaysOld
+        };
+      } else if (minAge) {
+        match['bugAdded.createdOn'] = { $lte: pastMinimumDaysOld };
+      } else if (maxAge) {
+        match['bugAdded.createdOn'] = { $gte: pastMaximumDaysOld };
       }
-      debugBug(`The Date Searching For is ${JSON.stringify(match)}`);
+
+
+
+      if(maxAge || minAge){
+        debugBug(`The Date Searching For is ${JSON.stringify(pastMaximumDaysOld, pastMinimumDaysOld)}`);
+      }
+
 
 
   /* age age age age  AGE OF BUG   age age age age */
@@ -243,8 +254,13 @@ router.get("/list", async (req, res) => {
 
     // This is going to match whats in the param query
     const pipeline = [
-       // This matches the users input with whats in DB
+      // This matches the users input with whats in DB
       {$match: match},
+
+
+
+
+
 
       // Calls in the sort from the top which by default has the bugsCreationDate ascending
       {$sort: sort}, 
@@ -253,7 +269,7 @@ router.get("/list", async (req, res) => {
       // This is the page Number outputs that skips the amount of pages and the limit of pages shown
       {$skip: skip},
       {$limit: limit},
-    ]
+    ];
 
 
 
@@ -572,19 +588,27 @@ const classifyBugSchema = Joi.object({
   classification: Joi.string()
   .trim()
   .required()
-  .valid(
-    "Approved", "approved",
-    "Unapproved", "unapproved",
-    "Duplicate", "duplicate",
-  ) 
-  .max(1) // There can only be 1 classification
+  // This will allow for only these words to be added
+  // .valid(
+  //   "Approved", "approved",
+  //   "Unapproved", "unapproved",
+  //   "Duplicate", "duplicate",
+  // ) 
+  
+  // Witchcraft that will turn the users input into a capital letter to allow us to search using capitalize later
+  .custom((value, helpers) => {
+    const capitalizedValue = value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+    if (["Approved", "Unapproved", "Duplicate"].includes(capitalizedValue)) {
+      return capitalizedValue;
+    } else {
+      return helpers.message('Classifications Must Be Approved, Unapproved, or Duplicate');
+    }
+  })
   .message({
     'string.empty': 'A Classification is required',
     'any.required': 'A Classification is required',
     'any.only': 'Classifications Must Be Approved, Unapproved, or Duplicate', // None of the correct inputs are there
-    'string.max': 'Only {#limit} Classification is allowed', // if more than 50 characters
   }),
-
 
 });
 
@@ -720,7 +744,8 @@ router.put("/:bugId/assign",   validId("bugId"), validBody(assignBugSchema),    
           }
     } // end of userIdFound Success If statement
     else{
-      return null;
+      res.status(404).json({Id_Error: `User Id ${assignBugFields.assignedToUserId} Not Found`});
+      debugBug(`User Id ${assignBugFields.assignedToUserId} Not Found`);
     }
   }
 

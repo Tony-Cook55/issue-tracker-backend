@@ -310,10 +310,20 @@ async function assignBugToUser(bugsId, assignedBugFields){
 
   const dbConnected = await connect();
 
+
+
+
+  // Find the user by their assignedToUserId
+  const assignedByUser = await dbConnected.collection("User").findOne({ _id: new ObjectId(assignedBugFields.assignedToUserId) });
+
+
+
+
+
   // This will create the array with the user's data
   const assignBugToUserStructure = {
     assignedToUserId: assignedBugFields.assignedToUserId,
-    assignedByUser: userIdFound.fullName, // Assign the full name of the user
+    assignedByUser: assignedByUser.fullName, // Assign the full name of the user
     assignedOn: new Date(),
     bugAssignedOn: new Date().toLocaleString('en-US'),
   };
