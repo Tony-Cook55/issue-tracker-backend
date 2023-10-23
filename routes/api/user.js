@@ -394,6 +394,11 @@ router.post("/register",  validBody(registerUserSchema),   async (req, res) => {
   const newUser = req.body;
 
 
+
+
+
+
+
   //Call in our connect to database and then we find the email in the database then the users input
   const dbConnected = await connect();
   const emailExists = await dbConnected.collection("User").findOne({email: newUser.email});
@@ -422,7 +427,7 @@ router.post("/register",  validBody(registerUserSchema),   async (req, res) => {
         // If user adding a new User is true it will be known as acknowledged
         if(addingNewUser.acknowledged == true){
           // Success Message
-          res.status(200).json({User_Added: `User ${newUser.fullName} Added With An Id of ${addingNewUser.insertedId}`});
+          res.status(200).json({User_Added: `User ${newUser.fullName} Added With An Id of ${addingNewUser.insertedId}.  Your AuthToken is ${authToken}`});
           debugUser(`User ${newUser.fullName} Added With An Id of ${addingNewUser.insertedId} \n`); // Message Appears in terminal
         }
         /////// IF NO JOI USE BACK UP IS STATEMENTS ///////
