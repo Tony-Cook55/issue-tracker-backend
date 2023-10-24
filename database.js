@@ -45,6 +45,40 @@ async function ping() {
 
 
 
+
+
+
+//🍪 cccccccccccccccccccccccccccccccccc 🍪 COOKIES 🍪 ccccccccccccccccccccccccccccc 🍪 //
+
+// eeeeeeeeeeeeeeeeeeeeeeeee EDITS MADE DURING AN UPDATE eeeeeeeeeeeeeeeeeeeeeeeee //
+async function saveEdit(editMade){
+  const db = await connect();
+
+
+  const editsMade = await db.collection("Edits").insertOne(editMade);
+
+  return editsMade;
+}
+
+
+
+export{
+  saveEdit
+};
+
+// eeeeeeeeeeeeeeeeeeeeeeeee EDITS MADE DURING AN UPDATE eeeeeeeeeeeeeeeeeeeeeeeee //
+
+
+//🍪 cccccccccccccccccccccccccccccccccc 🍪 COOKIES 🍪 ccccccccccccccccccccccccccccc 🍪 //
+
+
+
+
+
+
+
+
+
 // ******************************* USERS ********************************** //
 
 
@@ -80,7 +114,6 @@ async function getUserById(usersId){
 // +++++++++++++++++ ADDING A NEW USER +++++++++++++++++ //
 async function addNewUser(newUser){
   const dbConnected = await connect();
-
 
   // This date is for searching purposes
   newUser.createdOn = new Date();
@@ -143,8 +176,24 @@ async function loginUser(userLogin){
 
 
 
+// uuuuuuuuuuuuuuuuu USER UPDATES THEMSELVES IF LOGGED IN uuuuuuuuuuuuuuuuu //
+async function userUpdatesThemselves(getUser){
 
-// uuuuuuuuuuuuuuuuu UPDATE A USER uuuuuuuuuuuuuuuuu //
+  const dbConnected = await connect();
+
+  // gets the inputted id and the input for all the fields due to the:  ... gets all the values from the fields
+  const userUpdated = await dbConnected.collection("User").updateOne({_id: getUser._id},{$set:{...getUser}});
+
+  return userUpdated;
+}
+// uuuuuuuuuuuuuuuuu USER UPDATES THEMSELVES IF LOGGED IN uuuuuuuuuuuuuuuuu //
+
+
+
+
+
+
+// Admin uuuuuuuu Admin    ADMIN CAN UPDATE ANY USER   Admin uuuuuuuu Admin //
 async function updateUser(usersId, updatedUserFields){
 
   const dbConnected = await connect();
@@ -162,7 +211,7 @@ async function updateUser(usersId, updatedUserFields){
 
   return userUpdated;
 }
-// uuuuuuuuuuuuuuuuu UPDATE A USER uuuuuuuuuuuuuuuuu //
+// Admin uuuuuuuu Admin    ADMIN CAN UPDATE ANY USER   Admin uuuuuuuu Admin //
 
 
 
@@ -188,6 +237,7 @@ export{
   getUserById,
   addNewUser,
   loginUser,
+  userUpdatesThemselves,
   updateUser,
   deleteUser
 };

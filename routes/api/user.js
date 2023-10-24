@@ -19,9 +19,27 @@ const nanoid = customAlphabet('1234567890abcdef', 10)
 import bcrypt from "bcrypt";
 
 
-// Imports all the functions from the database.js file to CRUD Users
-import { connect, getAllUsers, getUserById, addNewUser, loginUser, updateUser, deleteUser} from "../../database.js";
+// Imports the use of creating a new user id
+import { newId } from "../../database.js";
 
+
+
+// ccccc 🍪 COOKIES & AUTH TOKEN 🍪 ccccc //
+// Allows us to make new tokens to authorize users when they log in
+import  jwt from "jsonwebtoken";
+
+// This is a method that allows a user to NEED TO BE LOGGED IN it will throw the merlin MESSAGE: You are not logged in!
+import { isLoggedIn } from "@merlin4/express-auth";
+
+// ccccc 🍪COOKIES & AUTH TOKEN 🍪 ccccc //
+
+
+// Imports all the functions from the database.js file to CRUD Users
+import { connect, getAllUsers, getUserById, addNewUser, loginUser, userUpdatesThemselves, updateUser, deleteUser} from "../../database.js";
+
+
+// This is what makes a new collection named Edits and allows users updates to be seen
+import { saveEdit } from "../../database.js";
 
 
 // CALLS IN THE MIDDLEWARE FUNCTION     - JOI
@@ -40,6 +58,45 @@ router.use(express.urlencoded({extended:false}));
 
 
 
+// isLoggedIn(),  Means that a user NEEDS/MUST BE LOGGED IN if not it will throw an error message so to see anything must be LOGGED IN
+
+//🍪 cccccccccccccccccccccccc 🍪 COOKIES & AUTH TOKEN 🍪 cccccccccccccccccccccccc 🍪//
+// This goes into the jsonWebToken 
+async function issueAuthToken(user){
+
+  // This is the things that will be shown on the front end that being the users Id, FullName, Email, and their Role
+  const payload = {_id: user._id, fullName: user.fullName, email: user.email, role: user.role};
+
+  // This is the way to decrypt the token so like don't lose this
+  const secret = process.env.AUTH_SECRET;
+
+  // Sets the time in which the token will expire
+  const options = {expiresIn: "1h"};
+
+  // makes the token putting all the variables in
+  const authToken = jwt.sign(payload, secret, options);
+
+  return authToken;
+}
+
+// This is the cookie that calls in the authToken as well
+function issueAuthCookie(res, authToken){
+
+  //Cookies can be set as "httpOnly," which means they cannot be accessed by client-side JavaScript, making them more secure against certain types of attacks (e.g., cross-site scripting).
+  // This is the options of the cookie and also sets the age to 1hr (1000 milliseconds * 60 *60)
+  const cookieOptions = {httpOnly: true, maxAge: 1000*60*60};
+
+  // Creates the cookie using the cookieOptions and calls in the token from above
+  res.cookie("authToken", authToken, cookieOptions);
+}
+
+//🍪 cccccccccccccccccccccccc 🍪 COOKIES & AUTH TOKEN 🍪 cccccccccccccccccccccccc 🍪//
+
+
+
+
+
+
 
 
 
@@ -47,7 +104,7 @@ router.use(express.urlencoded({extended:false}));
 // ~~~~~~~~~~~~~~~~ FIND ALL USERS ~~~~~~~~~~~~~~~~ // http://localhost:5000/api/users/list
 
 
-router.get("/list", async (req, res) => {
+router.get("/list",   isLoggedIn(),  async (req, res) => {
   try {
     // // Calls in the getAllUsers() Function from database.js finding all the Users
     // const allUsers = await getAllUsers();
@@ -145,7 +202,7 @@ router.get("/list", async (req, res) => {
   /* sssssssssssssssssss SORTING sssssssssssssssssss */
 
       // By Default we will sort in ascending order of all of these below
-      let sort = {givenName: 1};  // The 1 is ascending  ~  -1 is descending order
+      let sort = {givenName: 1, createdOn: 1};  // The 1 is ascending  ~  -1 is descending order
 
       // Gets the users input in the sortBy field
       let {sortBy} = req.query;
@@ -244,38 +301,167 @@ router.get("/list", async (req, res) => {
 
 
 
+//@@@@@@@@@@@@@@@@@@@@  USER SEARCHES FOR THEMSELVES IF LOGGED IN @@@@@@@@@@@@@@@@@@@@  http://localhost:5000/api/users/me
+
+// GETTING A USER BY THEIR LOGGED IN COOKIE AND AUTH
+router.get("/me",    isLoggedIn(),   validId("userId"),    async (req, res) => {   // the :userId   makes a param variable that we pass in
+  try {
+
+    // If the user is logged in then we will get THAT LOGGED IN USERS ID
+    const getLoggedInUser = await getUserById(newId(req.auth._id))
+
+
+    if(getLoggedInUser){
+      // Success Message
+      res.status(200).json(getLoggedInUser);
+      debugUser(`Success, Got "${getLoggedInUser.fullName}" Id: ${getLoggedInUser}\n`); // Message Appears in terminal
+    }
+    else if(!usersId){
+      debugUser(`Invalid Id Entered. Please enter A Valid User Id`);
+    }
+    else{
+      // Error Message
+      res.status(404).json({Id_Error: `User ${getLoggedInUser} Not Found`});
+      debugUser(`User ${getLoggedInUser} Not Found\n`); // Message Appears in terminal
+    }
+  }
+  catch (err) {
+    // Error Message
+    res.status(500).json({Error: err.stack});
+  }
+});
+//@@@@@@@@@@@@@@@@@@@@  USER SEARCHES FOR THEMSELVES IF LOGGED IN @@@@@@@@@@@@@@@@@@@@
+
+
+
+
+
+
+
+
+
+
+// uuuuuuuuuuuuuuuuu  USER UPDATES THEMSELVES IF LOGGED IN  uuuuuuuuuuuuuuuuu //
+const updateSelfSchema = Joi.object({
+  fullName: Joi.string()
+  .trim()
+  .min(1)
+  .max(50),
+
+  password: Joi.string()
+  .trim()
+  .min(8)
+  .max(50),
+});
+
+
+ // A user Must be logged in to allow this function isLoggedIn() to pass
+router.put('/update/me',   isLoggedIn(),   validBody(updateSelfSchema), async (req,res) => {
+
+  const updatedUserFields = req.body;
+
+  try {
+    // If the user is logged in then we will get THAT LOGGED IN USERS ID
+    const getLoggedInUser = await getUserById(newId(req.auth._id))
+
+
+    // IF the user is actually logged in do the update process
+    if(getLoggedInUser){
+
+
+
+      // If the user enters something into these fields their newly inputted data in the body will be sent as the new data
+      if(updatedUserFields.fullName){
+        getLoggedInUser.fullName = updatedUserFields.fullName;
+      }
+      if(updatedUserFields.password){
+        // This will get the password the user enters and then Re-hash it so its not clear to viewers to the database
+        getLoggedInUser.password = await bcrypt.hash(updatedUserFields.password, 10);
+      }
+
+
+      // Calls in the updateUser Function that actually sends users newly inputted body params to the users params
+      const userUpdatedSelf = await userUpdatesThemselves(getLoggedInUser);
+
+
+      // If modified send success message
+      if(userUpdatedSelf.modifiedCount == 1){ // SUCCESS MESSAGE
+
+        // eeeeeeeeee EDITS MADE eeeeeeeeee //
+        const editsMade = {
+          timeStamp: new Date(),
+          userUpdatedThemselvesOn: new Date().toLocaleString('en-US'),
+          operation: "Self-Edit Update User", 
+          collection: "User",
+          userUpdated: getLoggedInUser._id,
+          auth: req.auth // Cookie information
+        }
+
+            // This is the function that pushes the editsMade array into the new Collection named Edits
+            let updatesMade = await saveEdit(editsMade);
+            // eeeeeeeeee EDITS MADE eeeeeeeeee //
+
+
+        res.status(200).json({Update_Successful: `Hello ${updatedUserFields.fullName}! You Have Successfully Updated Yourself. Your User Id is ${newId(req.auth._id)}`, updatesMade  });
+        return;
+      }
+      else{ // ERROR
+        res.status(400).json({Update_Error: `Hello ${updatedUserFields.fullName}! Sadly We Weren't able to Update You. Your User Id is ${newId(req.auth._id)}`});
+        return;
+      }
+
+    }
+  }catch (err) {
+    res.status(500).json({Error: err.stack});
+  }
+
+});
+
+// uuuuuuuuuuuuuuuuu  USER UPDATES THEMSELVES IF LOGGED IN  uuuuuuuuuuuuuuuuu //
+
+
+
+
+
+
+
+
+
+
+
+
 
 //!!!!!!!!!!!!!!!!!!  SEARCHING BY ID !!!!!!!!!!!!!!!!   http://localhost:5000/api/users/ (id of User)
 
-// GETTING A USER BY THEIR userId
+// GETTING ANY USER BY THEIR userId
 // What ever is in the .get("/:HERE!") you must make it the same as what in validId("HERE!")
-router.get("/:userId",   validId("userId"),    async (req, res) => {   // the :userId   makes a param variable that we pass in
+router.get("/:userId",    isLoggedIn(),   validId("userId"),    async (req, res) => {   // the :userId   makes a param variable that we pass in
   try {
 
 
     // USING JOI SO WE DON'T NEED THE .params to get users res
-    const usersId = req.userId;  // We don't need to have .params is due to the validId("id") is using the id from the params in function
+    const getUsers = req.userId;  // We don't need to have .params is due to the validId("id") is using the id from the params in function
 
 
     // were are getting a request with the parameters a user puts for the .id
     //const usersId = req.params.userId;
 
     // for every usersId return true when our _id is == to the id user enters
-    const receivedUserId = await getUserById(usersId);
+    const receivedUserId = await getUserById(getUsers);
 
 
     if(receivedUserId){
       // Success Message
       res.status(200).json(receivedUserId);
-      debugUser(`Success, Got "${receivedUserId.fullName}" Id: ${usersId}\n`); // Message Appears in terminal
+      debugUser(`Success, Got "${receivedUserId.fullName}" Id: ${getUsers}\n`); // Message Appears in terminal
     }
     else if(!usersId){
-      debugUser(`DEAR GOD`); // Message Appears in terminal
+      debugUser(`Invalid Id Entered. Please enter A Valid User Id`);
     }
     else{
       // Error Message
-      res.status(404).json({Id_Error: `User ${usersId} Not Found`});
-      debugUser(`User ${usersId} Not Found\n`); // Message Appears in terminal
+      res.status(404).json({Id_Error: `User ${getUsers} Not Found`});
+      debugUser(`User ${getUsers} Not Found`); // Message Appears in terminal
     }
   }
   catch (err) {
@@ -293,8 +479,6 @@ router.get("/:userId",   validId("userId"),    async (req, res) => {   // the :u
 
 
 // ++++++++++++++++ ADDING A NEW USER TO THE DATABASE ++++++++++++++++++ http://localhost:5000/api/users/register
-
-
 
 // Step 1 Define the Login User Schema    THESE WILL BE THE RULE SET FOR THE INPUTTED DATA
 const registerUserSchema = Joi.object({
@@ -394,18 +578,13 @@ router.post("/register",  validBody(registerUserSchema),   async (req, res) => {
   const newUser = req.body;
 
 
-
-
-
-
-
   //Call in our connect to database and then we find the email in the database then the users input
   const dbConnected = await connect();
   const emailExists = await dbConnected.collection("User").findOne({email: newUser.email});
 
     // If our email matches the email the user inputs throw this error
     if(emailExists){
-      res.status(400).json({Error: "Email Already Registered"});
+      res.status(400).json({Error: "Email Already Registered. Please Enter a New Email."});
       debugUser(`Email Already Registered \n`); // Message Appears in terminal
     }
     else{  // !!!!!! SUCCESS !!!!!!
@@ -426,33 +605,38 @@ router.post("/register",  validBody(registerUserSchema),   async (req, res) => {
 
         // If user adding a new User is true it will be known as acknowledged
         if(addingNewUser.acknowledged == true){
+
+            // ccccc 🍪 COOKIES 🍪 ccccc //
+              // Send our new user to the function that sets them with a new token and the token is then set in a cookie
+              const authToken = await issueAuthToken(newUser);
+
+              // Adds the authToken into the cookie that was made
+              issueAuthCookie(res, authToken);
+            // ccccc 🍪 COOKIES 🍪 ccccc //
+
+
+            // eeeeeeeeee EDITS MADE eeeeeeeeee //
+
+            // When the user successfully makes an account in the New Edits collection will show that this was done
+              const editsMade = {
+                timeStamp: new Date(),
+                userAddedOn: new Date().toLocaleString('en-US'),
+                collection: "User",
+                operation: "Register New User", 
+                userAdded: addingNewUser.insertedId,
+                auth: req.auth // Cookie information
+              }
+
+            // This is the function that pushes the editsMade array into the new Collection named Edits
+              let updatesMade = await saveEdit(editsMade);
+            // eeeeeeeeee EDITS MADE eeeeeeeeee //
+
+
+
           // Success Message
-          res.status(200).json({User_Added: `User ${newUser.fullName} Added With An Id of ${addingNewUser.insertedId}.  Your AuthToken is ${authToken}`});
+          res.status(200).json({User_Added: `User ${newUser.fullName} Added With An Id of ${addingNewUser.insertedId}. Your AuthToken is ${authToken}`});
           debugUser(`User ${newUser.fullName} Added With An Id of ${addingNewUser.insertedId} \n`); // Message Appears in terminal
         }
-        /////// IF NO JOI USE BACK UP IS STATEMENTS ///////
-        // // If there is not info in any of the fields throw error status. If not continue with adding user
-        // else if(!newUser){
-        //   res.status(400).json({Error: "Please Enter Information for all Fields"});
-        // }
-        // else if(!newUser.email){
-        //   res.status(400).json({Email_Error: "Please Enter a Email"});
-        // }
-        // else if(!newUser.password){
-        //   res.status(400).json({Password_Error: "Please Enter a Password"});
-        // }
-        // else if(!newUser.fullName){
-        //   res.status(400).json({Full_Name_Error: "Please Enter Your Full Name"});
-        // }
-        // else if(!newUser.givenName){
-        //   res.status(400).json({Given_Name_Error: "Please Enter Your Given Name"});
-        // }
-        // else if(!newUser.familyName){
-        //   res.status(400).json({Family_Name_Error: "Please Enter Your Family Name"});
-        // }
-        // else if(!newUser.role){
-        //   res.status(400).json({Role_Error: "Please Enter Your Role"});
-        // }
         else{
           // Error Message
           res.status(400).json({Error: `User ${newUser.fullName} Not Added`});
@@ -504,8 +688,6 @@ const loginUserSchema = Joi.object({
 
 
 
-
-
 router.post("/login",   validBody(loginUserSchema),   async (req, res) => {
 
     const usersLoginInformation = req.body; // Getting the users data from a body form
@@ -514,21 +696,6 @@ router.post("/login",   validBody(loginUserSchema),   async (req, res) => {
     const usersLoggedIn = await loginUser(usersLoginInformation);
 
   try {
-      /////// IF NO JOI USE BACK UP IF STATEMENTS ///////
-      // // If there is not info in any of the fields or in either email or password throw error status.
-      // if(!usersLoginInformation){
-      //   res.status(400).json({Error: "Please Enter Your Login Credentials."});
-      // }
-      // else if(!usersLoginInformation.email){
-      //   res.status(400).json({Email_Error: "Please Enter Your Email."});
-      // }
-      // else if(!usersLoginInformation.password){
-      //   res.status(400).json({Password_Error: "Please Enter Your Password."});
-      // }
-      // else{
-
-
-
 
         //This targets if the email is NOT correct if it is LOG USER IN
         if (!usersLoggedIn) {
@@ -542,9 +709,19 @@ router.post("/login",   validBody(loginUserSchema),   async (req, res) => {
             // If the entered password is the same as the password thats encrypted in database == Success
             if(usersLoggedIn && await bcrypt.compare(usersLoginInformation.password, usersLoggedIn.password)){
 
+
+                // ccc COOKIES ccc //
+                  // Send our new user to the function that sets them with a new token and the token is then set in a cookie
+                  const authToken = await issueAuthToken(usersLoggedIn);
+
+                  // Adds the authToken into the cookie that was made
+                  issueAuthCookie(res, authToken);
+                // ccc COOKIES ccc //
+
+
               // Success Message
-              res.status(200).json({Welcome_Back: `Welcome ${usersLoggedIn.fullName} You Are Successfully Logged In`});
-              debugUser(`Welcome ${usersLoggedIn.fullName} You Are Successfully Logged In`); // Message Appears in terminal
+              res.status(200).json({Welcome_Back: `Welcome ${usersLoggedIn.fullName} You Are Successfully Logged In. Your Auth Token is ${authToken}`});
+              debugUser(`Welcome ${usersLoggedIn.fullName} You Are Successfully Logged In. Your Auth Token is ${authToken}`); // Message Appears in terminal
             }
             else{ // xxxxxx ERROR xxxxxxx
               //Error For passwords
@@ -569,9 +746,17 @@ router.post("/login",   validBody(loginUserSchema),   async (req, res) => {
 
 
 
-// uuuuuuuuuuuuuuuuu UPDATE A USER uuuuuuuuuuuuuuuuu  http://localhost:5000/api/users/ (ID here)
 
 
+
+
+
+
+
+
+
+
+// Admin uuuuuuuuuuuuuu Admin   UPDATE A USER IF ADMIN   Admin uuuuuuuuuuuuuu Admin // http://localhost:5000/api/users/ (ID here)
 
 
 // Step 1 Define the Update User Schema  ~~ NO FIELDS ARE REQUIRED FOR USER TO ENTER ~~  THESE WILL BE THE RULE SET FOR THE INPUTTED DATA
@@ -716,7 +901,9 @@ router.put("/:userId",    validId("userId"), validBody(updateUserSchema),   asyn
     res.status(500).json({Error: err.stack});
   }
 });
-// uuuuuuuuuuuuuuuuu UPDATE A USER uuuuuuuuuuuuuuuuu
+// Admin uuuuuuuuuuuuuu Admin   UPDATE A USER IF ADMIN   Admin uuuuuuuuuuuuuu Admin //
+
+
 
 
 
@@ -725,7 +912,7 @@ router.put("/:userId",    validId("userId"), validBody(updateUserSchema),   asyn
 
 
 // -------------------- DELETING USER FROM DATABASE -------------------
-router.delete("/delete/:userId",   validId("userId"),   async (req, res) => {
+router.delete("/delete/:userId",   isLoggedIn(),   validId("userId"),   async (req, res) => {
 
   // gets the id from the users url
   const usersId = req.userId; // We don't need to have .params is due to the validId("id") is using the id from the params in function 
