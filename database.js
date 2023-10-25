@@ -181,6 +181,14 @@ async function userUpdatesThemselves(getUser){
 
   const dbConnected = await connect();
 
+
+    // This date is for searching purposes
+    getUser.lastUpdated = new Date();
+
+    // Here we create a new item in the Database called lastUpdated and we set the time it was made at for its value
+    getUser.userLastUpdated = new Date().toLocaleString('en-US');
+
+
   // gets the inputted id and the input for all the fields due to the:  ... gets all the values from the fields
   const userUpdated = await dbConnected.collection("User").updateOne({_id: getUser._id},{$set:{...getUser}});
 
@@ -901,6 +909,88 @@ export{
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee EDITS COLLECTION eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee //
+
+
+
+// ~~~~~~~~~~~~~~~~ FIND ALL EDITS IN EDITS COLLECTION ~~~~~~~~~~~~~~~~ //
+async function getAllEdits(){
+  // Calling the connect from above method to get the DB
+  const dbConnected = await connect();
+
+  // "Edits" == the collection name in our database
+  const allEdits = await dbConnected.collection("Edits").find().toArray();
+
+  //Returns All Edits to postman
+  return allEdits;
+}
+// ~~~~~~~~~~~~~~~~ FIND ALL EDITS IN EDITS COLLECTION ~~~~~~~~~~~~~~~~ //
+
+
+
+
+
+// ------------------ DELETE EDITS COLLECTIONS BY ID  ------------------ //
+async function deleteEditsMadeById(editsId){
+
+  const dbConnected = await connect();
+
+  // gets the inputted id and the input for all the fields due to the:  ... gets all the values from the fields
+  const deleteTheEdit = await dbConnected.collection("Edits").deleteOne({_id: new ObjectId(editsId)});
+
+  return deleteTheEdit;
+}
+
+// ------------------ DELETE EDITS COLLECTIONS BY ID  ------------------ //
+
+
+
+export {
+  getAllEdits,
+  deleteEditsMadeById
+};
+
+
+// eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee EDITS COLLECTION eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee //
 
 
 

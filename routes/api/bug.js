@@ -15,25 +15,39 @@ const nanoid = customAlphabet('1234567890abcdef', 10)
 
 
 
-// ccccc 🍪COOKIES & AUTH TOKEN 🍪 ccccc //
+
+// ccccc 🍪 COOKIES & AUTH TOKEN 🍪 ccccc //
+// Allows us to make new tokens to authorize users when they log in
+import  jwt from "jsonwebtoken";
 
 // This is a method that allows a user to NEED TO BE LOGGED IN it will throw the merlin MESSAGE: You are not logged in!
 import { isLoggedIn } from "@merlin4/express-auth";
 
+
+// Imports the use of creating a new user id
+import { newId } from "../../database.js";
+
 // ccccc 🍪COOKIES & AUTH TOKEN 🍪 ccccc //
+
 
 
 
 // Imports all the  BUG CRUD functions from the database.js file                  assignBugToUser Also Uses getUserById
 import { connect, getAllBugs, getBugById, addNewBug, updateBug, updateClassification, assignBugToUser, getUserById, closeBug,      deleteBug } from "../../database.js";
 
+
+
 // Imports all the COMMENT functions from the database.js file to CRUD Users
 import { newComment, getCommentById, getAllCommentsInBug,         deleteComment } from "../../database.js";
+
+
 
 // Imports all the TEST CASE functions from the database.js file to CRUD Users
 import { getAllTestCasesInBug, getTestCaseById, newTestCase, updateTestCase, deleteTestCase } from "../../database.js";
 
 
+// This is what makes a new collection named Edits and allows users updates to be seen
+import { saveEdit } from "../../database.js";
 
 
 
@@ -51,9 +65,6 @@ import { validBody } from "../../middleware/validBody.js";
 
 
 router.use(express.urlencoded({extended:false}));
-
-
-
 
 
 
@@ -324,7 +335,7 @@ router.get("/list",   isLoggedIn(),   async (req, res) => {
 
 //!!!!!!!!!!!!!!!!!!  SEARCHING BY ID !!!!!!!!!!!!!!!!   http://localhost:5000/api/bugs/ (id of User)
 // What ever is in the .get("/:HERE!") you must make it the same as what in validId("HERE!")
-router.get("/:bugId",     validId("bugId"),    async (req, res) => {
+router.get("/:bugId",   isLoggedIn(),  validId("bugId"),    async (req, res) => {
 
   try {
 
@@ -402,6 +413,7 @@ const addNewBugSchema = Joi.object({
     
 
 
+    /*
     bugAddedByUser: Joi.string()
     .trim()
     .required()
@@ -409,6 +421,7 @@ const addNewBugSchema = Joi.object({
       'string.empty': 'User Adding Bug is required',
       'any.required': 'User Adding Bug is required',
     }),
+    */
 
 });
 
@@ -436,14 +449,23 @@ router.post("/new",   isLoggedIn(),   validBody(addNewBugSchema),    async (req,
     else{  // !!!!!! SUCCESS !!!!!!
       try { 
 
-        // THIS USES THE SAME CODE AS FIND USER BY ID
-        // This line will see if the users input in bugAddedByUser == a _id of a user in the database
-        const userIdFound = await getUserById(newBug.bugAddedByUser);
 
-        // If a user enters a CORRECT USER ID IN bugAddedByUser then go ahead and add the bug
-        if(userIdFound){
-          // THIS GETS THE USERS FULL NAME AND ADDS IT INTO OUR BUG
-          newBug.bugAddedByUserFullName = userIdFound.fullName;
+        /* This code below was before the cookies. It allowed someone to enter a User Id and then if that id
+            was found it would use their name and say they created that bug. 
+
+
+        // // THIS USES THE SAME CODE AS FIND USER BY ID
+        // // This line will see if the users input in bugAddedByUser == a _id of a user in the database
+        //const userIdFound = await getUserById(newBug.bugAddedByUser);
+
+        // // If a user enters a CORRECT USER ID IN bugAddedByUser then go ahead and add the bug
+        // if(userIdFound){
+
+          // // THIS GETS THE USERS FULL NAME AND ADDS IT INTO OUR BUG
+          //newBug.bugAddedByUserFullName = userIdFound.fullName;
+          
+          */
+
 
 
           // ACTUALLY ADDS THE USERS INPUT HERE
@@ -454,22 +476,46 @@ router.post("/new",   isLoggedIn(),   validBody(addNewBugSchema),    async (req,
 
           // If user adding a New Bug is true it will be known as acknowledged
           if(addingNewBug.acknowledged == true){
-            // Success Message
-            res.status(200).json({Bug_Added: `Bug ${newBug.title} Added With An Id of ${addingNewBug.insertedId} by ${userIdFound.fullName}`});
-            debugBug(`Bug ${newBug.title}  Added With An Id of ${addingNewBug.insertedId} by ${userIdFound.fullName}`); // Message Appears in terminal
+
+
+                // If the user is logged in then we will get THAT LOGGED IN USERS ID
+          const getLoggedInUser = await getUserById(newId(req.auth._id))  // req.auth._id   gets the current cookie logged in user
+
+
+
+            // eeeeeeeeee EDITS MADE eeeeeeeeee //
+              // When the user successfully makes an account in the New Edits collection will show that this was done
+              const editsMade = {
+                timeStamp: new Date(),
+                bugAddedOn: new Date().toLocaleString('en-US'),
+                collection: "Bug",
+                operation: "New Bug Added", 
+                bugAddedByUser: getLoggedInUser,
+                auth: req.auth // Cookie information
+              }
+
+              // This is the function that pushes the editsMade array into the new Collection named Edits
+              let updatesMade = await saveEdit(editsMade);
+          // eeeeeeeeee EDITS MADE eeeeeeeeee //
+
+
+
+            // Success Message                                                                                                                 old call in to see users Id then get name                
+            res.status(200).json({Bug_Added: `Bug ${newBug.title} Added With An Id of ${addingNewBug.insertedId} by User ${ getLoggedInUser.fullName  /*userIdFound.fullName*/} With a User Id of ${getLoggedInUser._id}`});
+            debugBug(`Bug ${newBug.title} Added With An Id of ${addingNewBug.insertedId} by User ${ getLoggedInUser.fullName} With a User Id of: ${getLoggedInUser._id}`); // Message Appears in terminal
           }
           else{
             // Error Message
             res.status(400).json({Error: `Bug ${newBug.title} Not Added`});
-            debugBug(`Bug ${newBug.title} Not Added  \n`); // Message Appears in terminal
+            debugBug(`Bug ${newBug.title} Not Added  \n`);
           }
 
 
-        } // This else statement is if the user enters a bad User id for bugAddedByUser
-        else{
-          res.status(400).json({Error: `Users Id Trying To Add Bug Is Invalid`});
-          debugBug(`Users Id Trying To Add Bug Is Invalid`); // Message Appears in terminal
-        }
+        // } // This else statement is if the user enters a bad User id for bugAddedByUser
+        // else{
+        //   res.status(400).json({Error: `Users Id Trying To Add Bug Is Invalid`});
+        //   debugBug(`Users Id Trying To Add Bug Is Invalid`); // Message Appears in terminal
+        // }
 
 
       }

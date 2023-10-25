@@ -38,6 +38,10 @@ import { isLoggedIn } from "@merlin4/express-auth";
 import { connect, getAllUsers, getUserById, addNewUser, loginUser, userUpdatesThemselves, updateUser, deleteUser} from "../../database.js";
 
 
+// THIS IMPORTS THE function to delete the stupid edits by Id from the Edits Collection
+import { getAllEdits, deleteEditsMadeById } from "../../database.js";
+
+
 // This is what makes a new collection named Edits and allows users updates to be seen
 import { saveEdit } from "../../database.js";
 
@@ -102,8 +106,6 @@ function issueAuthCookie(res, authToken){
 
 
 // ~~~~~~~~~~~~~~~~ FIND ALL USERS ~~~~~~~~~~~~~~~~ // http://localhost:5000/api/users/list
-
-
 router.get("/list",   isLoggedIn(),  async (req, res) => {
   try {
     // // Calls in the getAllUsers() Function from database.js finding all the Users
@@ -202,7 +204,7 @@ router.get("/list",   isLoggedIn(),  async (req, res) => {
   /* sssssssssssssssssss SORTING sssssssssssssssssss */
 
       // By Default we will sort in ascending order of all of these below
-      let sort = {givenName: 1, createdOn: 1};  // The 1 is ascending  ~  -1 is descending order
+      let sort = {createdOn: -1, givenName: 1, };  // The 1 is ascending  ~  -1 is descending order
 
       // Gets the users input in the sortBy field
       let {sortBy} = req.query;
@@ -304,7 +306,7 @@ router.get("/list",   isLoggedIn(),  async (req, res) => {
 //@@@@@@@@@@@@@@@@@@@@  USER SEARCHES FOR THEMSELVES IF LOGGED IN @@@@@@@@@@@@@@@@@@@@  http://localhost:5000/api/users/me
 
 // GETTING A USER BY THEIR LOGGED IN COOKIE AND AUTH
-router.get("/me",    isLoggedIn(),   validId("userId"),    async (req, res) => {   // the :userId   makes a param variable that we pass in
+router.get("/me",    isLoggedIn(),     async (req, res) => {   // the :userId   makes a param variable that we pass in
   try {
 
     // If the user is logged in then we will get THAT LOGGED IN USERS ID
@@ -314,15 +316,15 @@ router.get("/me",    isLoggedIn(),   validId("userId"),    async (req, res) => {
     if(getLoggedInUser){
       // Success Message
       res.status(200).json(getLoggedInUser);
-      debugUser(`Success, Got "${getLoggedInUser.fullName}" Id: ${getLoggedInUser}\n`); // Message Appears in terminal
+      debugUser(`Success, Got "${getLoggedInUser.fullName}" Id: ${getLoggedInUser._id}\n`); // Message Appears in terminal
     }
     else if(!usersId){
-      debugUser(`Invalid Id Entered. Please enter A Valid User Id`);
+      debugUser(`Could Not Retrieve Your Account At This Time.`);
     }
     else{
       // Error Message
-      res.status(404).json({Id_Error: `User ${getLoggedInUser} Not Found`});
-      debugUser(`User ${getLoggedInUser} Not Found\n`); // Message Appears in terminal
+      res.status(404).json({Id_Error: `User ${getLoggedInUser._id} Not Found`});
+      debugUser(`User ${getLoggedInUser._id} Not Found\n`); // Message Appears in terminal
     }
   }
   catch (err) {
@@ -341,43 +343,112 @@ router.get("/me",    isLoggedIn(),   validId("userId"),    async (req, res) => {
 
 
 
-// uuuuuuuuuuuuuuuuu  USER UPDATES THEMSELVES IF LOGGED IN  uuuuuuuuuuuuuuuuu //
+// uuuuuuuuuuuuuuuuu  USER UPDATES THEMSELVES IF LOGGED IN  uuuuuuuuuuuuuuuuu //   http://localhost:5000/api/users/me
 const updateSelfSchema = Joi.object({
-  fullName: Joi.string()
-  .trim()
-  .min(1)
-  .max(50),
 
   password: Joi.string()
   .trim()
   .min(8)
-  .max(50),
+  .max(50)
+  .messages({
+    'string.empty': 'Password Is Required', // If password is left blank
+    'string.min': 'Password must be at least {#limit} characters long',  // if less than 8 characters
+    'string.max': 'Password must be at most {#limit} characters long', // if more than 50 characters
+    'any.required': 'Password is required', // if the password is left uncheck marked and not entered
+  }),
+  // Code that will allow me to just reuse everything from password
+  //repeat_password: Joi.ref('password'),
+
+
+  fullName: Joi.string()
+    .trim()
+    .messages({
+      'string.empty': 'Full name is required',
+      'any.required': 'Full name is required',
+    }),
+
+
+    givenName: Joi.string()
+    .trim()
+    .messages({
+      'string.empty': 'Given name is required',
+      'any.required': 'Given name is required',
+    }),
+
+
+    familyName: Joi.string()
+    .trim()
+    .messages({
+      'string.empty': 'Family name is required',
+      'any.required': 'Family name is required',
+    }),
+
 });
 
 
  // A user Must be logged in to allow this function isLoggedIn() to pass
-router.put('/update/me',   isLoggedIn(),   validBody(updateSelfSchema), async (req,res) => {
+router.put('/me',   isLoggedIn(),   validBody(updateSelfSchema), async (req,res) => {
 
   const updatedUserFields = req.body;
 
   try {
+
     // If the user is logged in then we will get THAT LOGGED IN USERS ID
-    const getLoggedInUser = await getUserById(newId(req.auth._id))
+    const getLoggedInUser = await getUserById(newId(req.auth._id))  // req.auth._id   gets the current cookie logged in user
 
 
     // IF the user is actually logged in do the update process
     if(getLoggedInUser){
 
-
-
       // If the user enters something into these fields their newly inputted data in the body will be sent as the new data
-      if(updatedUserFields.fullName){
-        getLoggedInUser.fullName = updatedUserFields.fullName;
-      }
+
+      // Users can update:  Password, Full Name, Given Name, Family Name    - User CANT UPDATE: Email, Roles
       if(updatedUserFields.password){
         // This will get the password the user enters and then Re-hash it so its not clear to viewers to the database
         getLoggedInUser.password = await bcrypt.hash(updatedUserFields.password, 10);
       }
+      if(updatedUserFields.fullName){
+        getLoggedInUser.fullName = updatedUserFields.fullName;
+      }
+      if(updatedUserFields.givenName){
+        getLoggedInUser.givenName = updatedUserFields.givenName;
+      }
+      if(updatedUserFields.familyName){
+        getLoggedInUser.familyName = updatedUserFields.familyName;
+      }
+
+
+
+            // ------ CHANGES MADE ------ //
+                // This is an empty array to store the changes the user makes
+                const changesMadeByUserArray = [];
+
+                // Retrieve the original user data from our database using same code ABOVE FROM getUserById
+                const originalUsersData = await getUserById(newId(req.auth._id)); // Calls in the current logged in user
+
+                // Compare the fields user enters to the original fields in getAllUsers()
+                for (const key in updatedUserFields) {
+                  if (originalUsersData[key] !== updatedUserFields[key]) {
+                    const change = {
+                      field: key,
+                      oldValue: originalUsersData[key],
+                      newValue: updatedUserFields[key]
+                    };
+                    changesMadeByUserArray.push(change);
+                  }
+                }
+
+
+                // This is our message that will output the array of items changed. It shows the fields that where changed and what info used to be there and the new info
+                const changesMadeMessage = changesMadeByUserArray.length > 0
+                  ? changesMadeByUserArray.map(change => `Field ${change.field} was ' ${change.oldValue} ': User Changed Their ${change.field} to ' ${change.newValue} '`)
+                  : 'No changes made';
+            // ------ CHANGES MADE ------ //
+
+
+
+
+
 
 
       // Calls in the updateUser Function that actually sends users newly inputted body params to the users params
@@ -387,22 +458,37 @@ router.put('/update/me',   isLoggedIn(),   validBody(updateSelfSchema), async (r
       // If modified send success message
       if(userUpdatedSelf.modifiedCount == 1){ // SUCCESS MESSAGE
 
-        // eeeeeeeeee EDITS MADE eeeeeeeeee //
-        const editsMade = {
-          timeStamp: new Date(),
-          userUpdatedThemselvesOn: new Date().toLocaleString('en-US'),
-          operation: "Self-Edit Update User", 
-          collection: "User",
-          userUpdated: getLoggedInUser._id,
-          auth: req.auth // Cookie information
-        }
 
-            // This is the function that pushes the editsMade array into the new Collection named Edits
-            let updatesMade = await saveEdit(editsMade);
+            // ccccc 🍪 COOKIES 🍪 ccccc //
+              // Send our new user to the function that sets them with a new token and the token is then set in a cookie
+              const authToken = await issueAuthToken(getLoggedInUser);
+
+              // Adds the authToken into the cookie that was made
+              issueAuthCookie(res, authToken);
+            // ccccc 🍪 COOKIES 🍪 ccccc //
+
+
+
+            // eeeeeeeeee EDITS MADE eeeeeeeeee //
+              const editsMade = {
+                timeStamp: new Date(),
+                userUpdatedThemselvesOn: new Date().toLocaleString('en-US'),
+                collection: "User",
+                operation: "Self-Edit Update User", 
+                userUpdated: getLoggedInUser._id,
+                fieldsUpdated: changesMadeMessage,
+                auth: {_id:getLoggedInUser._id, fullName:getLoggedInUser.fullName, email: getLoggedInUser.email, role:getLoggedInUser.role} // Cookie information
+              }
+
+              // This is the function that pushes the editsMade array into the new Collection named Edits
+              let updatesMade = await saveEdit(editsMade);
             // eeeeeeeeee EDITS MADE eeeeeeeeee //
 
 
-        res.status(200).json({Update_Successful: `Hello ${updatedUserFields.fullName}! You Have Successfully Updated Yourself. Your User Id is ${newId(req.auth._id)}`, updatesMade  });
+        // SUCCESS MESSAGE
+        res.status(200).json({Update_Successful: `Hello ${updatedUserFields.fullName}! You Have Successfully Updated Yourself. Your User Id is ${newId(req.auth._id)}`,
+        // In the success message will show an array of what has been changed this is the message below
+        Changes_Made_To: changesMadeMessage }); 
         return;
       }
       else{ // ERROR
@@ -416,7 +502,6 @@ router.put('/update/me',   isLoggedIn(),   validBody(updateSelfSchema), async (r
   }
 
 });
-
 // uuuuuuuuuuuuuuuuu  USER UPDATES THEMSELVES IF LOGGED IN  uuuuuuuuuuuuuuuuu //
 
 
@@ -482,8 +567,6 @@ router.get("/:userId",    isLoggedIn(),   validId("userId"),    async (req, res)
 
 // Step 1 Define the Login User Schema    THESE WILL BE THE RULE SET FOR THE INPUTTED DATA
 const registerUserSchema = Joi.object({
-
-
   password: Joi.string()
   .trim()
   .min(8)
@@ -503,7 +586,7 @@ const registerUserSchema = Joi.object({
 
   email: Joi.string()
   .trim()
-  .email({minDomainSegments: 2, tlds: { allow: ['com', 'net'] } })
+  .email({minDomainSegments: 2, tlds: { allow: ['com', 'net', 'edu'] } })
   .required()
   .messages({
     'string.empty': 'Email is required', // if email is left empty
@@ -539,9 +622,7 @@ const registerUserSchema = Joi.object({
     }),
 
 
-    role: Joi.array()
-    .items(
-      Joi.string()
+    role: Joi.string()
       .valid
       (
         'Developer', 'developer',
@@ -561,7 +642,6 @@ const registerUserSchema = Joi.object({
         'array.max': 'A maximum of five roles can be provided',
         'string.valid': 'Invalid role selected',
       }),
-    ),
 
 
 
@@ -622,7 +702,7 @@ router.post("/register",  validBody(registerUserSchema),   async (req, res) => {
                 timeStamp: new Date(),
                 userAddedOn: new Date().toLocaleString('en-US'),
                 collection: "User",
-                operation: "Register New User", 
+                operation: "New User Registered", 
                 userAdded: addingNewUser.insertedId,
                 auth: req.auth // Cookie information
               }
@@ -677,7 +757,7 @@ const loginUserSchema = Joi.object({
 
   email: Joi.string()
   .trim()
-  .email({minDomainSegments: 2, tlds: { allow: ['com', 'net'] } })
+  .email({minDomainSegments: 2, tlds: { allow: ['com', 'net', 'edu'] } })
   .required()
   .messages({
     'string.empty': 'Your Email is required', // if email is left empty
@@ -720,7 +800,7 @@ router.post("/login",   validBody(loginUserSchema),   async (req, res) => {
 
 
               // Success Message
-              res.status(200).json({Welcome_Back: `Welcome ${usersLoggedIn.fullName} You Are Successfully Logged In. Your Auth Token is ${authToken}`});
+              res.status(200).json({Welcome_Back: `Welcome ${usersLoggedIn.fullName} You Are Successfully Logged In.`, Your_Auth_Token_Is: `${authToken}`});
               debugUser(`Welcome ${usersLoggedIn.fullName} You Are Successfully Logged In. Your Auth Token is ${authToken}`); // Message Appears in terminal
             }
             else{ // xxxxxx ERROR xxxxxxx
@@ -736,19 +816,6 @@ router.post("/login",   validBody(loginUserSchema),   async (req, res) => {
 
 });
 // /////////////// USER LOGIN WITH EMAIL & PASSWORD /////////////////
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -841,7 +908,6 @@ const updateUserSchema = Joi.object({
 
 
 
-
 router.put("/:userId",    validId("userId"), validBody(updateUserSchema),   async (req, res) => {
 
   // This gets the ID from the users input
@@ -863,19 +929,32 @@ router.put("/:userId",    validId("userId"), validBody(updateUserSchema),   asyn
 
 
   try {
-              // ------ CHANGES MADE ------ //    Ill be honest I tried to implement this my self but couldn't so this is ChatGBT
-                // This is an empty array to store the changes the user makes
-                const changesMadeByUserArray = [];
 
-                // Retrieve the original user data from our database using same code from Get All Users
-                const originalUsersData = await getAllUsers(userId);
 
-                  // Compare the fields user enters to the original fields in getAllUsers()
-                  for (const key in updatedUserFields) {
-                    if (originalUsersData[key] !== updatedUserFields[key]) {
-                      changesMadeByUserArray.push(key);
+              // ------ CHANGES MADE ------ //
+                  // This is an empty array to store the changes the user makes
+                  const changesMadeByAdmin = [];
+
+                  // Retrieve the original user data from our database using same code from Get All Users
+                  const originalUsersData = await getUserById(userId);
+
+                    // Compare the fields user enters to the original fields in getAllUsers()
+                    for (const key in updatedUserFields) {
+                      if (originalUsersData[key] !== updatedUserFields[key]) {
+                        const change = {
+                          field: key,
+                          oldValue: originalUsersData[key],
+                          newValue: updatedUserFields[key]
+                        };
+                        changesMadeByAdmin.push(change);
+                      }
                     }
-                  }
+
+
+                    // This is the message i will call down to display both the field changed and the value that was inputted
+                    const changesMadeByAdminMessage = changesMadeByAdmin.length > 0
+                    ? changesMadeByAdmin.map(change => `Field ${change.field} was ' ${change.oldValue} ': Admin Changed ${change.field} to  ' ${change.newValue} '`)
+                    : 'No changes made';
                 // ------ CHANGES MADE ------ //
 
 
@@ -885,11 +964,34 @@ router.put("/:userId",    validId("userId"), validBody(updateUserSchema),   asyn
 
     // If the User is updated once it will gain a property called modifiedCount if this is 1 its true
     if(userUpdated.modifiedCount == 1){
+
+
+      // This calls in the users after they are updated allowing us to see their NEW INFO
+      const showUsersNewInfo = await getUserById(userId);
+
+
+        // eeeeeeeeee EDITS MADE eeeeeeeeee //
+            const editsMade = {
+              timeStamp: new Date(),
+              AdminUpdatedUserOn: new Date().toLocaleString('en-US'),
+              collection: "User",
+              operation: "Admin Update User", 
+              userUpdated: showUsersNewInfo._id,
+              fieldsUpdated: changesMadeByAdminMessage,
+              auth: {_id: showUsersNewInfo._id, fullName: showUsersNewInfo.fullName, email: showUsersNewInfo.email, role: showUsersNewInfo.role} // Cookie information
+            }
+
+            // This is the function that pushes the editsMade array into the new Collection named Edits
+            let updatesMade = await saveEdit(editsMade);
+        // eeeeeeeeee EDITS MADE eeeeeeeeee //
+
+
+
       // Success Message
-      res.status(200).json({User_Updated: `User ${userId} updated`,
+      res.status(200).json({ User_Updated: `User ${showUsersNewInfo.fullName} with a User Id of ${userId} Updated`,
       // THIS is apart of the success message and it looks to see the length of the array of changes. IF array is 0? say message  'No changes made'
-      Changes_Made_To: changesMadeByUserArray.length > 0 ? changesMadeByUserArray : 'No changes made'}); // Success Message
-      debugUser(`User ${userId} Updated`);
+      Changes_Made_To: changesMadeByAdminMessage }); // Success Message
+      debugUser(`User ${showUsersNewInfo.fullName} with a User Id of ${userId} Updated`, changesMadeByAdminMessage );
     }
     else{
       // Error Message
@@ -911,7 +1013,7 @@ router.put("/:userId",    validId("userId"), validBody(updateUserSchema),   asyn
 
 
 
-// -------------------- DELETING USER FROM DATABASE -------------------
+// -------------------- ADMIN DELETING USER FROM DATABASE -------------------
 router.delete("/delete/:userId",   isLoggedIn(),   validId("userId"),   async (req, res) => {
 
   // gets the id from the users url
@@ -919,17 +1021,40 @@ router.delete("/delete/:userId",   isLoggedIn(),   validId("userId"),   async (r
 
 
   try {
+
+      // This calls in the users info BEFORE DELETION so we can call in their info in the message
+      const showUsersInfo = await getUserById(usersId);
+
+
     // Uses the Users id and plugs it into the deleteUser function
       const deleteTheUser = await deleteUser(usersId);
 
       if(deleteTheUser.deletedCount == 1){
+
+
+            // eeeeeeeeee EDITS MADE eeeeeeeeee //
+                // When the user successfully makes an account in the New Edits collection will show that this was done
+                const editsMade = {
+                  timeStamp: new Date(),
+                  userDeletedOn: new Date().toLocaleString('en-US'),
+                  collection: "User",
+                  operation: "Admin Deleted User", 
+                  usersId: usersId,
+                  auth: req.auth // Cookie information
+                }
+
+              // This is the function that pushes the editsMade array into the new Collection named Edits
+                let updatesMade = await saveEdit(editsMade);
+          // eeeeeeeeee EDITS MADE eeeeeeeeee //
+
+
         // Success Message
-        res.status(200).json({User_Deleted: `User ${usersId} Deleted`, usersId});
-        debugUser(`User ${usersId} Deleted\n`, usersId); // Message Appears in terminal
+        res.status(200).json({User_Deleted: `User ${showUsersInfo.fullName} with a User Id of ${usersId} Deleted`, User_Id: usersId});
+        debugUser(`User ${showUsersInfo.fullName} with a User Id of ${usersId} Deleted`, usersId); // Message Appears in terminal
       }
       else{
         // Error Message
-        res.status(404).json({Error: `User ${usersId} Not Found`});
+        res.status(404).json({Id_Error: `User ${usersId} Not Found`});
         debugUser(`User ${usersId} Not Found\n`); // Message Appears in terminal
       }
   }
@@ -938,7 +1063,175 @@ router.delete("/delete/:userId",   isLoggedIn(),   validId("userId"),   async (r
   }
 
 });
-// -------------------- DELETING USER FROM DATABASE -------------------
+// -------------------- ADMIN DELETING USER FROM DATABASE -------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee EDITS COLLECTION eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee //
+
+
+
+
+
+// ~~~~~~~~~~~~~~~~ FIND ALL USERS ~~~~~~~~~~~~~~~~ // http://localhost:5000/api/users/edits/list
+router.get("/edits/list",   isLoggedIn(),  async (req, res) => {
+  try {
+
+    // This stage of the aggregation pipeline is the FILTER it will match what the users input is compared to whats in DB
+    const match = {};
+
+
+  /* key key key key   KEYWORDS  key key key key */
+
+      // Get the Key from the params query in postman called keywords
+      let {keywords} = req.query;
+
+      // If there are keywords that match do the following
+      if(keywords){
+        // If the keywords entered match
+        match.$text = {$search: keywords};
+      }
+
+  /* key key key key   KEYWORDS  key key key key */
+
+
+
+
+  /* sssssssssssssssssss SORTING sssssssssssssssssss */
+
+      // By Default we will sort in ascending order of all of these below
+      let sort = {createdOn: -1, createdOn: 1};  // The 1 is ascending  ~  -1 is descending order
+
+      // Gets the users input in the sortBy field
+      let {sortBy} = req.query;
+
+      // If the words below are in sortBy it will make sort == and Overwrite that item instead of the default or the last one 
+      switch(sortBy){
+
+        // If newest is entered then the users created date will be descending
+        case "newest": sort = { timeStamp: -1}; break;
+
+        // If oldest is entered then the users created date will be ascending
+        case "oldest": sort = { timeStamp: 1}; break;
+      }
+
+  /* sssssssssssssssssss SORTING sssssssssssssssssss */
+
+
+
+
+
+
+
+
+    // This is going to match whats in the param query
+    const pipeline = [
+       // This matches the users input with whats in DB
+      {$match: match},
+
+      // Calls in the sort from the top which by default has the givenName ascending
+      {$sort: sort}, 
+
+
+    ]
+
+
+
+
+
+  // =============== OUTPUT =============== //
+
+      // Connects to our database to allow us to still search
+      const db = await connect();
+
+      // This looks though the DB pipeline and aggregates it to either all the results or the search
+      const cursor = await db.collection('Edits').aggregate(pipeline);
+
+      // Sets the cursor's results into an array to be displayed
+      const foundEdits = await cursor.toArray();
+
+      // Success Message -  Shows the results in an array 
+      res.status(200).json(foundEdits);
+
+  // =============== OUTPUT =============== //
+
+
+    debugUser("Success! Found All The Edits"); // Message Appears in terminal
+  }
+  catch (err) { // Error Message
+    res.status(500).json({Error: err.stack});
+  }
+});
+// ~~~~~~~~~~~~~~~~ FIND ALL USERS ~~~~~~~~~~~~~~~~ //
+
+
+
+// -------------------- DELETING EDITS MADE FROM EDITS COLLECTION FROM DATABASE -------------------
+router.delete("/delete/edits/:editsMadeId",   isLoggedIn(),   validId("editsMadeId"),   async (req, res) => {
+
+  // gets the id from the users url
+  const editsMadeId = req.editsMadeId; // We don't need to have .params is due to the validId("id") is using the id from the params in function 
+
+
+  try {
+    // Uses the Users id and plugs it into the deleteUser function
+      const deleteTheEdit = await deleteEditsMadeById(editsMadeId);
+
+      if(deleteTheEdit.deletedCount == 1){
+        // Success Message
+        res.status(200).json({Edit_Deleted: `Edit ${editsMadeId} Deleted`, editsMadeId});
+        debugUser(`Edit ${editsMadeId} Deleted\n`, editsMadeId); // Message Appears in terminal
+      }
+      else{
+        // Error Message
+        res.status(404).json({Id_Error: `Edit ${editsMadeId} Not Found`});
+        debugUser(`Edit ${editsMadeId} Not Found\n`); // Message Appears in terminal
+      }
+  }
+  catch (err) {
+    res.status(500).json({Error: err.stack});
+  }
+
+});
+// -------------------- DELETING EDITS MADE FROM EDITS COLLECTION FROM DATABASE -------------------
+
+
+
+
+// eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee EDITS COLLECTION eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee //
+
+
+
 
 
 
