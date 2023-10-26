@@ -175,14 +175,14 @@ router.get("/list",   isLoggedIn(),   async (req, res) => {
       // Does the corresponding result for maxAge and minAge
       if (maxAge && minAge) {
         // This match here is going inside of my array named bugAdded then getting the createdOn date
-        match['bugAdded.createdOn'] = {
+        match['bugCreationInformation.createdOn'] = {
           $lte: pastMinimumDaysOld,
           $gte: pastMaximumDaysOld
         };
       } else if (minAge) {
-        match['bugAdded.createdOn'] = { $lte: pastMinimumDaysOld };
+        match['bugCreationInformation.createdOn'] = { $lte: pastMinimumDaysOld };
       } else if (maxAge) {
-        match['bugAdded.createdOn'] = { $gte: pastMaximumDaysOld };
+        match['bugCreationInformation.createdOn'] = { $gte: pastMaximumDaysOld };
       }
 
 
@@ -220,8 +220,8 @@ router.get("/list",   isLoggedIn(),   async (req, res) => {
 
   /* sssssssssssssssssss SORTING sssssssssssssssssss */
 
-      // By Default we will sort The dates by newest Bugs added from the bugAdded Array in DB
-      let sort = {"bugAdded.createdOn": -1};  // The 1 is ascending  ~  -1 is descending order
+      // By Default we will sort The dates by newest Bugs added from the bugCreationInformation Array in DB
+      let sort = {"bugCreationInformation.createdOn": -1};  // The 1 is ascending  ~  -1 is descending order
 
       // Gets the users input in the sortBy field
       let {sortBy} = req.query;
@@ -233,20 +233,20 @@ router.get("/list",   isLoggedIn(),   async (req, res) => {
         case "title": sort = {title : 1, createdOn: -1}; break;
 
         // If classification is entered then it will make classification ascending, created date descending
-        case "classification": sort = {classification : 1, classifiedOn : 1, "bugAdded.createdOn": -1}; break;
+        case "classification": sort = {classification : 1, classifiedOn : 1, "bugCreationInformation.createdOn": -1}; break;
 
         // If assignedTo is entered then it will make assigned to name ascending, created date descending
         case "assignedTo": sort = {"assignedTo.assignedToUser": 1, "assignedTo.assignedOn": -1}; break;
 
         // If createdBy is entered then it will make  created by name, created date descending
-        // Searching in the array named bugAdded then getting the values .bugAddedByUserFullName & .createdOn
-        case "createdBy": sort = { "bugAdded.bugAddedByUserFullName": 1, "bugAdded.createdOn": -1}; break;
+        // Searching in the array named bugCreationInformation then getting the values .bugAddedByUserFullName & .createdOn
+        case "createdBy": sort = { "bugCreationInformation.bugCreatedByUser": 1, "bugCreationInformation.createdOn": -1}; break;
 
         // If newest is entered then the users created date will be descending
-        case "newest": sort = { "bugAdded.createdOn": -1}; break;
+        case "newest": sort = { "bugCreationInformation.createdOn": -1}; break;
 
         // If oldest is entered then the users created date will be ascending
-        case "oldest": sort = { "bugAdded.createdOn": 1}; break;
+        case "oldest": sort = { "bugCreationInformation.createdOn": 1}; break;
       }
 
   /* sssssssssssssssssss SORTING sssssssssssssssssss */
@@ -395,21 +395,18 @@ const addNewBugSchema = Joi.object({
     }),
 
 
-    stepsToReproduce: Joi.array()
-    .items(
-      Joi.string()
-      .required()
-      .min(1) // Minimum of at least one role
-      .max(100) // Maximum of 100 steps
-      .messages({
-        'string.empty': 'Steps To Reproduce is required',
-        'any.required': 'Steps To Reproduce is required',
-        'array.base': 'Steps To Reproduce must be an array',
-        'array.min': 'At least one step must be provided',
-        'array.max': 'A maximum of 100 steps can be provided',
-        'string.valid': 'Invalid Step To Reproduce provided',
-      }),
-    ),
+    // Allows the user to enter either 1 item or an array of items in postman
+    stepsToReproduce: Joi.alternatives().try(
+      Joi.array().items(Joi.string().min(1).max(100)).min(1).max(100),
+      Joi.string().required().min(1).max(100)
+    ).messages({
+      'array.base': 'Steps To Reproduce must be an array or a single step',
+      'array.min': 'At least one step must be provided in the array',
+      'array.max': 'A maximum of 100 steps can be provided in the array',
+      'string.min': 'Step must have at least 1 character',
+      'string.max': 'Step can have a maximum of 100 characters',
+      'string.empty': 'Step is required',
+    }),
     
 
 
@@ -467,30 +464,34 @@ router.post("/new",   isLoggedIn(),   validBody(addNewBugSchema),    async (req,
           */
 
 
+          // If the user is logged in then we will get THAT LOGGED IN USERS INFORMATION
+          const getLoggedInUser = await getUserById(newId(req.auth._id))  // req.auth._id   gets the current cookie logged in user
+
+
 
           // ACTUALLY ADDS THE USERS INPUT HERE
-            // Adds the users input from the body and plugs it into the addNewBug Function
-            const addingNewBug = await addNewBug(newBug);
-          // ACTUALLY ADDS THE USERS INPUT HERE
+
+            // Adds the users input from the body and the logged in users INFO and plugs it into the addNewBug Function
+            const addingNewBug = await addNewBug(newBug, getLoggedInUser); // getLoggedInUser == users info thats then extracted for name, email, role, in database
+
+            // ACTUALLY ADDS THE USERS INPUT HERE
+
 
 
           // If user adding a New Bug is true it will be known as acknowledged
           if(addingNewBug.acknowledged == true){
 
 
-                // If the user is logged in then we will get THAT LOGGED IN USERS ID
-          const getLoggedInUser = await getUserById(newId(req.auth._id))  // req.auth._id   gets the current cookie logged in user
 
-
-
-            // eeeeeeeeee EDITS MADE eeeeeeeeee //
+          // eeeeeeeeee EDITS MADE eeeeeeeeee //
               // When the user successfully makes an account in the New Edits collection will show that this was done
               const editsMade = {
                 timeStamp: new Date(),
                 bugAddedOn: new Date().toLocaleString('en-US'),
                 collection: "Bug",
                 operation: "New Bug Added", 
-                bugAddedByUser: getLoggedInUser,
+                bugAdded: addingNewBug.insertedId, // Shows bugs id thats made
+                bugAddedByUser: getLoggedInUser.fullName, // shows the cookie info for the logged in user
                 auth: req.auth // Cookie information
               }
 
@@ -516,8 +517,6 @@ router.post("/new",   isLoggedIn(),   validBody(addNewBugSchema),    async (req,
         //   res.status(400).json({Error: `Users Id Trying To Add Bug Is Invalid`});
         //   debugBug(`Users Id Trying To Add Bug Is Invalid`); // Message Appears in terminal
         // }
-
-
       }
       catch (err) {
         res.status(500).json({Error: err.stack});
@@ -525,6 +524,7 @@ router.post("/new",   isLoggedIn(),   validBody(addNewBugSchema),    async (req,
     }
 });
 // ++++++++++++++++ ADDING A NEW BUG TO THE DATABASE ++++++++++++++++++
+
 
 
 
@@ -559,18 +559,18 @@ const updateBugSchema = Joi.object({
   .trim(),
 
 
-  stepsToReproduce: Joi.array()
-  .items(
-    Joi.string()
-    .min(1) // Minimum of at least one role
-    .max(100) // Maximum of 100 steps
-    .messages({
-      'array.base': 'Steps To Reproduce must be an array',
-      'array.min': 'At least one step must be provided',
-      'array.max': 'A maximum of 100 steps can be provided',
-      'string.valid': 'Invalid Step To Reproduce provided',
-    }),
-  ),
+  stepsToReproduce: Joi.alternatives().try(
+    Joi.array().items(Joi.string().min(1).max(100)).min(1).max(100),
+    Joi.string().min(1).max(100)
+  ).messages({
+    'array.base': 'Steps To Reproduce must be an array or a single step',
+    'array.min': 'At least one step must be provided in the array',
+    'array.max': 'A maximum of 100 steps can be provided in the array',
+    'string.min': 'Step must have at least 1 character',
+    'string.max': 'Step can have a maximum of 100 characters',
+    'string.empty': 'Step is required',
+  }),
+
 
 
 });
@@ -589,21 +589,39 @@ router.put("/:bugId",   isLoggedIn(),   validId("bugId"), validBody(updateBugSch
     // .body holds all the information/fields the user enters
 
 
+    // If the user is logged in then we will get THAT LOGGED IN USERS INFORMATION
+    const getLoggedInUser = await getUserById(newId(req.auth._id))  // req.auth._id   gets the current cookie logged in user
+
+
+
     try {
 
-              // ------ CHANGES MADE ------ //    Ill be honest I tried to implement this my self but couldn't so this is ChatGBT
-                // This is an empty array to store the changes the user makes
-                const changesMadeByUserArray = [];
 
-                // Retrieve the original user data from our database using same code from Get All Users
-                const originalUsersData = await getAllBugs(bugsId);
 
-                  // Compare the fields user enters to the original fields in getAllUsers()
-                  for (const key in updatedBugFields) {
-                    if (originalUsersData[key] !== updatedBugFields[key]) {
-                      changesMadeByUserArray.push(key);
-                    }
-                  }
+                // ------ CHANGES MADE ------ //
+                    // This is an empty array to store the changes the user makes
+                    const changesMadeByUser = [];
+
+                    // Retrieve the original user data from our database using same code from Get Bug by Id
+                    const originalBugsData = await getBugById(bugsId);
+
+                      // Compare the fields user enters to the original fields in getAllUsers()
+                      for (const key in updatedBugFields) {
+                        if (originalBugsData[key] !== updatedBugFields[key]) {
+                          const change = {
+                            field: key,
+                            oldValue: originalBugsData[key],
+                            newValue: updatedBugFields[key]
+                          };
+                          changesMadeByUser.push(change);
+                        }
+                      }
+
+
+                    // This is the message i will call down to display both the field changed and the value that was inputted
+                    const changesMadeByUserMessage = changesMadeByUser.length > 0
+                    ? changesMadeByUser.map(change => ` Field ${change.field} was '${change.oldValue}' ~ User ${getLoggedInUser.fullName} Changed ${change.field} to '${change.newValue}' `)
+                    : 'No changes made';
                 // ------ CHANGES MADE ------ //
 
 
@@ -611,13 +629,39 @@ router.put("/:bugId",   isLoggedIn(),   validId("bugId"), validBody(updateBugSch
       // Calls the function and uses the users entered id and body params for the values to pass into function
       const bugUpdated = await updateBug(bugsId, updatedBugFields);
 
+
+
       // If the Bug is updated once it will gain a property called modifiedCount if this is 1 its true
       if(bugUpdated.modifiedCount == 1){
+
+
+
+            // eeeeeeeeee EDITS MADE eeeeeeeeee //
+              // When the user successfully makes an account in the New Edits collection will show that this was done
+              const editsMade = {
+                timeStamp: new Date(),
+                bugUpdatedOn: new Date().toLocaleString('en-US'),
+                collection: "Bug",
+                operation: "Bug Updated", 
+                bugUpdated: bugsId, // Shows bugs id thats updated
+                bugUpdatedByUser: getLoggedInUser.fullName, // shows the cookie info for the logged in user
+                fieldsUpdated: changesMadeByUserMessage, // Shows the message of what changed
+                auth: req.auth // Cookie information
+              }
+
+              // This is the function that pushes the editsMade array into the new Collection named Edits
+              let updatesMade = await saveEdit(editsMade);
+          // eeeeeeeeee EDITS MADE eeeeeeeeee //
+
+
+
+
+
         // Success Message
-        res.status(200).json({Bug_Updated: `Bug ${bugsId} updated`,
-        //the length of the array of changes. IF array is 0? say message  'No changes made'
-        Changes_Made_To: changesMadeByUserArray.length > 0 ? changesMadeByUserArray : 'No changes made'}); // Success Message}); // Success Message
-        debugBug(`Bug ${bugsId} Updated`);
+        res.status(200).json({Bug_Updated: `Bug ${bugsId} updated by User ${getLoggedInUser.fullName} with a User Id of ${getLoggedInUser._id}`,
+        Changes_Made_To: changesMadeByUserMessage }); // Success Message
+
+        debugBug(`Bug ${bugsId} updated by User ${getLoggedInUser.fullName} with a User Id of ${getLoggedInUser._id}`);
       }
       else{
         // Error Message
@@ -686,10 +730,10 @@ router.put("/:bugId/classify",    isLoggedIn(),   validId("bugId"), validBody(cl
 
   // If there is no input for classification error
   if(!classifyBugFields.classification){
-    res.status(400).json({Error: `Please Enter 1A Classification of: Approved, Unapproved, Duplicate, or Unclassified`});
+    res.status(400).json({Error: `Please Enter A Classification of: Approved, Unapproved, Duplicate, or Unclassified`});
   }
   // IF there is a response but it doesn't match Approved, Unapproved, Duplicate, or Unclassified throw error
-  else if(
+  else if( // Makes things Uppercase
   classifyBugFields.classification.toLowerCase() !== "approved" &&
   classifyBugFields.classification.toLowerCase() !== "unapproved" &&
   classifyBugFields.classification.toLowerCase() !== "duplicate" &&
@@ -699,13 +743,72 @@ router.put("/:bugId/classify",    isLoggedIn(),   validId("bugId"), validBody(cl
   }
   else{  // ------ SUCCESS ------
       try {
+
+
+          // If the user is logged in then we will get THAT LOGGED IN USERS INFORMATION
+          const getLoggedInUser = await getUserById(newId(req.auth._id))  // req.auth._id   gets the current cookie logged in user
+
+
+                // ------ CHANGES MADE ------ //
+                    // This is an empty array to store the changes the user makes
+                    const changesMadeByUser = [];
+
+                    // Retrieve the original user data from our database using same code from Get Bug by Id
+                    const originalBugsData = await getBugById(bugsId);
+
+                      // Compare the fields user enters to the original fields in getAllUsers()
+                      for (const key in classifyBugFields) {
+                        if (originalBugsData[key] !== classifyBugFields[key]) {
+                          const change = {
+                            field: key,
+                            oldValue: originalBugsData[key],
+                            newValue: classifyBugFields[key]
+                          };
+                          changesMadeByUser.push(change);
+                        }
+                      }
+
+
+                    // This is the message i will call down to display both the field changed and the value that was inputted
+                    const changesMadeByUserMessage = changesMadeByUser.length > 0
+                    ? changesMadeByUser.map(change => ` Field ${change.field} was '${change.oldValue}' ~ User ${getLoggedInUser.fullName} Changed ${change.field} to '${change.newValue}' `)
+                    : 'No changes made';
+                // ------ CHANGES MADE ------ //
+
+
+
+
+
         // Calls the function and uses the users entered id and body params for the values to pass into function
         const bugClassified = await updateClassification(bugsId, classifyBugFields);
 
+
+
         // If the Bugs Classification is updated once. It will gain a property called modifiedCount if this is 1 its true
         if(bugClassified.modifiedCount == 1){
-          // Success Message
-          res.status(200).json({Bug_Classified: `Bug ${bugsId} Classified With a Classification of ${classifyBugFields.classification}`}); // Success Message
+
+
+            // eeeeeeeeee EDITS MADE eeeeeeeeee //
+              // When the user successfully makes an account in the New Edits collection will show that this was done
+              const editsMade = {
+                timeStamp: new Date(),
+                bugClassifiedOn: new Date().toLocaleString('en-US'),
+                collection: "Bug",
+                operation: "Bug Classified", 
+                bugClassified: bugsId, // Shows bugs id thats classified
+                bugClassifiedByUser: getLoggedInUser.fullName, // shows the cookie info for the logged in user
+                fieldsUpdated: changesMadeByUserMessage, // Shows the message of what changed
+                auth: req.auth // Cookie information
+              }
+
+              // This is the function that pushes the editsMade array into the new Collection named Edits
+              let updatesMade = await saveEdit(editsMade);
+            // eeeeeeeeee EDITS MADE eeeeeeeeee //
+
+
+          // Success Messages
+          res.status(200).json({Bug_Classified: `Bug ${bugsId} Classified With a Classification of '${classifyBugFields.classification}' by User ${getLoggedInUser.fullName} With a User Id of ${getLoggedInUser._id}`,
+            Changes_Made_To: changesMadeByUserMessage});
           debugBug(`Bug ${bugsId} Classified With a Classification of ${classifyBugFields.classification}`);
         }
         else{
@@ -770,6 +873,38 @@ router.put("/:bugId/assign",    isLoggedIn(),   validId("bugId"), validBody(assi
       const userIdFound = await getUserById(assignBugFields.assignedToUserId);
 
 
+
+                // If the user is logged in then we will get THAT LOGGED IN USERS INFORMATION
+                const getLoggedInUser = await getUserById(newId(req.auth._id))  // req.auth._id   gets the current cookie logged in user
+
+
+                // ------ CHANGES MADE ------ //
+                    // This is an empty array to store the changes the user makes
+                    const changesMadeByUser = [];
+
+                    // Retrieve the original user data from our database using same code from Get Bug by Id
+                    const originalBugsData = await getBugById(bugsId);
+
+                      // Compare the fields user enters to the original fields in getAllUsers()
+                      for (const key in assignBugFields) {
+                        if (originalBugsData[key] !== assignBugFields[key]) {
+                          const change = {
+                            field: key,
+                            oldValue: originalBugsData[key],
+                            newValue: assignBugFields[key]
+                          };
+                          changesMadeByUser.push(change);
+                        }
+                      }
+
+
+                    // This is the message i will call down to display both the field changed and the value that was inputted
+                    const changesMadeByUserMessage = changesMadeByUser.length > 0
+                    ? changesMadeByUser.map(change => ` Field ${change.field} was '${change.oldValue}' ~ User ${getLoggedInUser.fullName} Changed ${change.field} to '${change.newValue}' `)
+                    : 'No changes made';
+                // ------ CHANGES MADE ------ //
+
+
         // If user properly enters the a valid ID of a USER!
         // IF TRUE GO AHEAD AND SET THE INPUTTED CORRECT USER ID TO THE BUG SPECIFIED IN THE URL
         if(userIdFound){
@@ -786,7 +921,8 @@ router.put("/:bugId/assign",    isLoggedIn(),   validId("bugId"), validBody(assi
               // If the Bugs bugAssigned is updated once. It will gain a property called modifiedCount if this is 1 its true
               if(bugAssigned.modifiedCount == 1){
                 // Success Message
-                res.status(200).json({Bug_Assigned: `Bug ${bugsId} Assigned to User ${userIdFound.fullName}`, Users_Id: `${userIdFound.fullName}'s _id = ${userIdFound._id}`}); // Success Message
+                res.status(200).json({Bug_Assigned: `Bug ${bugsId} Assigned to User ${userIdFound.fullName} By User ${getLoggedInUser.fullName} With a User Id of ${getLoggedInUser._id}` , Users_Id: `${userIdFound.fullName}'s _id = ${userIdFound._id}`,
+                  Changes_Made_To: changesMadeByUserMessage}); // Success Message
                 debugBug(`Bug ${bugsId} Assigned to User ${userIdFound.fullName}`);
               }
               else{

@@ -61,7 +61,6 @@ async function saveEdit(editMade){
 }
 
 
-
 export{
   saveEdit
 };
@@ -70,6 +69,10 @@ export{
 
 
 //🍪 cccccccccccccccccccccccccccccccccc 🍪 COOKIES 🍪 ccccccccccccccccccccccccccccc 🍪 //
+
+
+
+
 
 
 
@@ -292,6 +295,8 @@ async function getAllBugs(){
 
 
 
+
+
 // !!!!!!!!!!!!!!! SEARCHING FOR A BUG BY ID !!!!!!!!!!!!!!! //
 async function getBugById(bugsId){
   const dbConnected = await connect();
@@ -304,27 +309,56 @@ async function getBugById(bugsId){
 
 
 
+
+
+
 // +++++++++++++++++ ADDING A NEW BUG +++++++++++++++++ //
-async function addNewBug(newBug){
+async function addNewBug(newBug, getLoggedInUser){ // the addedByUser is the cookie information of logged in user
   const dbConnected = await connect();
 
 
-  // This is all of the data the user inputs into the body params
+  // Add the user information to the bugCreationInformation array
   const bugAddedData = {
-    bugAddedByUserFullName: newBug.bugAddedByUserFullName,
-    bugAddedByUser: newBug.bugAddedByUser,
+    //bugAddedByUser: newBug.bugAddedByUser,   // This is the code used to add the bugAddedByUser field in the body
+    
     createdOn: new Date(),
     bugsCreationDate: new Date().toLocaleString('en-US'),
+
+
+    // Gets the information from the getLoggedInUser call that will get the information from the COOKIE
+    _id: getLoggedInUser._id,
+    bugCreatedByUser: getLoggedInUser.fullName,
+    usersEmail: getLoggedInUser.email,
+    usersRole: getLoggedInUser.role,
   };
 
 
+  // If no info empty array?
+  if (!newBug.bugCreationInformation) {
+    newBug.bugCreationInformation = [];
+  }
+
+
+  // This pushes an array called bugCreationInformation and pushes the data we plug into the array above called bugAddedData
+  newBug.bugCreationInformation.push(bugAddedData);
+
+
+  // Set the default classification to "unclassified" Then later when user updates classification it will overwrite this
+  newBug.classification = "Unclassified"; // Capitalize here since users input will always start capital
+
+
+
+
+  /* This is code that if the user enters a user ID into the bugAddedByUser field would add correctly
   // Add the bugAddedData to the newBug object as an array to allow it to be inside an array
-  newBug.bugAdded = [bugAddedData];
+  //newBug.bugAdded = [bugAddedData];
 
 
   // Remove the individual properties from newBug to be inside of the array
-  delete newBug.bugAddedByUserFullName;
-  delete newBug.bugAddedByUser;
+  // delete newBug.bugAddedByUserFullName;
+  // delete newBug.bugAddedByUser;
+  */
+
 
 
   // Insert the newBug into the database
@@ -334,6 +368,9 @@ async function addNewBug(newBug){
   return addingNewBug;
 }
 // +++++++++++++++++ ADDING A NEW BUG +++++++++++++++++ //
+
+
+
 
 
 
@@ -633,7 +670,7 @@ async function newComment(bugsId, newCommentFields){
 
 
 // ********************* ONLY FOR MY USE NOT THE USER *********************
-// ------------------ DELETE BUG BY ID ------------------ //
+// ------------------ DELETE COMMENT BY ID ------------------ //
 async function deleteComment(bugsId, commentsId){
 
   const dbConnected = await connect();
@@ -648,7 +685,7 @@ async function deleteComment(bugsId, commentsId){
 
 
 }
-// ------------------ DELETE BUG BY ID ------------------ //
+// ------------------ DELETE COMMENT BY ID ------------------ //
 // ********************* ONLY FOR MY USE NOT THE USER *********************
 
 
@@ -870,7 +907,7 @@ async function updateTestCase(bugsId, testCasesId, updatedTestCaseFields){
 
 
 
-// ------------------ DELETE BUG BY ID ------------------ //
+// ------------------ DELETE TEST CASE BY ID ------------------ //
 async function deleteTestCase(bugsId, testCasesId){
 
   const dbConnected = await connect();
@@ -885,7 +922,7 @@ async function deleteTestCase(bugsId, testCasesId){
 
 
 }
-// ------------------ DELETE BUG BY ID ------------------ //
+// ------------------ DELETE TEST CASE BY ID ------------------ //
 
 
 

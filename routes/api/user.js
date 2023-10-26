@@ -441,7 +441,7 @@ router.put('/me',   isLoggedIn(),   validBody(updateSelfSchema), async (req,res)
 
                 // This is our message that will output the array of items changed. It shows the fields that where changed and what info used to be there and the new info
                 const changesMadeMessage = changesMadeByUserArray.length > 0
-                  ? changesMadeByUserArray.map(change => `Field ${change.field} was ' ${change.oldValue} ': User Changed Their ${change.field} to ' ${change.newValue} '`)
+                  ? changesMadeByUserArray.map(change => ` Field ${change.field} was '${change.oldValue}' ~ User Changed Their ${change.field} to '${change.newValue}' `)
                   : 'No changes made';
             // ------ CHANGES MADE ------ //
 
@@ -622,26 +622,36 @@ const registerUserSchema = Joi.object({
     }),
 
 
-    role: Joi.string()
-      .valid
-      (
-        'Developer', 'developer',
-        'Business Analysts', 'business analysts',
-        'Quality Analyst', 'quality analyst',
-        'Product Manager', 'product manager',
-        'Technical Manager', 'technical manager',
-      )
-      .required()
-      .min(1) // Minimum of at least one role
-      .max(5) // Maximum of five roles
-      .messages({
-        'string.empty': 'Role is required',
-        'any.required': 'Role is required',
-        'array.base': 'Roles must be an array',
-        'array.min': 'At least one role must be provided',
-        'array.max': 'A maximum of five roles can be provided',
-        'string.valid': 'Invalid role selected',
-      }),
+    // Allows a user to enter a single item or an array of items
+    role: Joi.alternatives().try(
+      Joi.array()
+        .items(
+          Joi.string()
+            .valid(
+              'Developer', 'developer',
+              'Business Analysts', 'business analysts',
+              'Quality Analyst', 'quality analyst',
+              'Product Manager', 'product manager',
+              'Technical Manager', 'technical manager'
+            )
+            .min(1)
+            .max(5)
+        )
+        .min(1)
+        .max(5)
+        .required(),
+      Joi.string()
+        .valid(
+          'Developer', 'developer',
+          'Business Analysts', 'business analysts',
+          'Quality Analyst', 'quality analyst',
+          'Product Manager', 'product manager',
+          'Technical Manager', 'technical manager'
+        )
+        .required()
+    ).required()
+
+  
 
 
 
@@ -879,28 +889,42 @@ const updateUserSchema = Joi.object({
     }),
 
 
-    role: Joi.array()
-    .items(
+    // Allows user to update 1 role or several and then adds it to an array
+    role: Joi.alternatives().try(
+      Joi.array()
+        .items(
+          Joi.string()
+            .valid(
+              'Developer', 'developer',
+              'Business Analysts', 'business analysts',
+              'Quality Analyst', 'quality analyst',
+              'Product Manager', 'product manager',
+              'Technical Manager', 'technical manager'
+            )
+            .min(1)
+            .max(5)
+        )
+        .min(1)
+        .max(5),
       Joi.string()
-      .valid
-      (
-        'Developer', 'developer',
-        'Business Analysts', 'business analysts',
-        'Quality Analyst', 'quality analyst',
-        'Product Manager', 'product manager',
-        'Technical Manager', 'technical manager',
-      )
-      .min(1) // Minimum of at least one role
-      .max(5) // Maximum of five roles
-      .messages({
-        'string.empty': 'Role is required',
-        'any.required': 'Role is required',
-        'array.base': 'Roles must be an array',
-        'array.min': 'At least one role must be provided',
-        'array.max': 'A maximum of five roles can be provided',
-        'string.valid': 'Invalid role selected',
-      }),
-    ),
+        .valid(
+          'Developer', 'developer',
+          'Business Analysts', 'business analysts',
+          'Quality Analyst', 'quality analyst',
+          'Product Manager', 'product manager',
+          'Technical Manager', 'technical manager'
+        )
+    ).messages({
+      'array.base': 'Roles must be an array or a single role',
+      'array.min': 'At least one role must be provided in the array',
+      'array.max': 'A maximum of five roles can be provided in the array',
+      'string.valid': 'Invalid role selected',
+    }),
+
+
+
+
+
 
 
   }); // END OF updateUserSchema
@@ -953,7 +977,7 @@ router.put("/:userId",    validId("userId"), validBody(updateUserSchema),   asyn
 
                     // This is the message i will call down to display both the field changed and the value that was inputted
                     const changesMadeByAdminMessage = changesMadeByAdmin.length > 0
-                    ? changesMadeByAdmin.map(change => `Field ${change.field} was ' ${change.oldValue} ': Admin Changed ${change.field} to  ' ${change.newValue} '`)
+                    ? changesMadeByAdmin.map(change => ` Field ${change.field} was '${change.oldValue}' ~ Admin Changed ${change.field} to  '${change.newValue}' `)
                     : 'No changes made';
                 // ------ CHANGES MADE ------ //
 
