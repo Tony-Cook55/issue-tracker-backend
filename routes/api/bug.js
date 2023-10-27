@@ -554,10 +554,6 @@ const updateBugSchema = Joi.object({
   }),
 
 
-  classification: Joi.string()
-  .default("Unclassified") // If nothing is entered for this field it will auto default to being UnClassified
-  .trim(),
-
 
   stepsToReproduce: Joi.alternatives().try(
     Joi.array().items(Joi.string().min(1).max(100)).min(1).max(100),
@@ -627,7 +623,8 @@ router.put("/:bugId",   isLoggedIn(),   validId("bugId"), validBody(updateBugSch
 
 
       // Calls the function and uses the users entered id and body params for the values to pass into function
-      const bugUpdated = await updateBug(bugsId, updatedBugFields);
+      // we send in the getLoggedInUser information so we can send the users _id into the database
+      const bugUpdated = await updateBug(bugsId, updatedBugFields, getLoggedInUser); 
 
 
 
@@ -652,7 +649,6 @@ router.put("/:bugId",   isLoggedIn(),   validId("bugId"), validBody(updateBugSch
               // This is the function that pushes the editsMade array into the new Collection named Edits
               let updatesMade = await saveEdit(editsMade);
           // eeeeeeeeee EDITS MADE eeeeeeeeee //
-
 
 
 
@@ -780,7 +776,8 @@ router.put("/:bugId/classify",    isLoggedIn(),   validId("bugId"), validBody(cl
 
 
         // Calls the function and uses the users entered id and body params for the values to pass into function
-        const bugClassified = await updateClassification(bugsId, classifyBugFields);
+              // we send in the getLoggedInUser information so we can send the users _id into the database
+        const bugClassified = await updateClassification(bugsId, classifyBugFields, getLoggedInUser);
 
 
 
@@ -914,14 +911,34 @@ router.put("/:bugId/assign",    isLoggedIn(),   validId("bugId"), validBody(assi
 
 
               // Sets the bugsId and the users inputted fields into the assignBugToUser Function
-              const bugAssigned = await assignBugToUser(bugsId, assignBugFields);
+              const bugAssigned = await assignBugToUser(bugsId, assignBugFields, getLoggedInUser);
 
 
 
               // If the Bugs bugAssigned is updated once. It will gain a property called modifiedCount if this is 1 its true
               if(bugAssigned.modifiedCount == 1){
+
+
+                    // eeeeeeeeee EDITS MADE eeeeeeeeee //
+                      // When the user successfully makes an account in the New Edits collection will show that this was done
+                      const editsMade = {
+                        timeStamp: new Date(),
+                        bugAssignedOn: new Date().toLocaleString('en-US'),
+                        collection: "Bug",
+                        operation: "Bug Assigned", 
+                        bugAssigned: bugsId, // Shows bugs id thats classified
+                        bugAssignedByUser: getLoggedInUser.fullName, // shows the cookie info for the logged in user
+                        fieldsUpdated: changesMadeByUserMessage, // Shows the message of what changed
+                        auth: req.auth // Cookie information
+                      }
+
+                      // This is the function that pushes the editsMade array into the new Collection named Edits
+                      let updatesMade = await saveEdit(editsMade);
+                    // eeeeeeeeee EDITS MADE eeeeeeeeee //
+
+
                 // Success Message
-                res.status(200).json({Bug_Assigned: `Bug ${bugsId} Assigned to User ${userIdFound.fullName} By User ${getLoggedInUser.fullName} With a User Id of ${getLoggedInUser._id}` , Users_Id: `${userIdFound.fullName}'s _id = ${userIdFound._id}`,
+                res.status(200).json({Bug_Assigned: `Bug ${bugsId} Assigned to User ${userIdFound.fullName} By User ${getLoggedInUser.fullName} With a User Id of ${getLoggedInUser._id}` , User_Assigned_Id: `${userIdFound.fullName}'s _id = ${userIdFound._id}`,
                   Changes_Made_To: changesMadeByUserMessage}); // Success Message
                 debugBug(`Bug ${bugsId} Assigned to User ${userIdFound.fullName}`);
               }
@@ -1009,20 +1026,70 @@ router.put("/:bugId/close",     isLoggedIn(),    validId("bugId"), validBody(clo
   // IF user Enters Closed or closed go ahead and Update it
     try {
 
-      // Calls the function and uses the users entered id and body params for the values to pass into function
-      const bugIsClosed = await closeBug(bugsId, closedFields);
+      // If the user is logged in then we will get THAT LOGGED IN USERS INFORMATION
+      const getLoggedInUser = await getUserById(newId(req.auth._id))  // req.auth._id   gets the current cookie logged in user
 
-      // If the Bug is updated once it will gain a property called modifiedCount if this is 1 its true
+
+
+      // Calls the function and uses the users entered id and body params for the values to pass into function
+      const bugIsClosed = await closeBug(bugsId, closedFields, getLoggedInUser);
+
+
+
+      // IF USER ENTERS - //!TRUE
       if(bugIsClosed.modifiedCount == 1 && closedFields.closed.toLowerCase() === "true"){
+
+
+            // eeeeeeeeee EDITS MADE eeeeeeeeee //
+              // When the user successfully makes an account in the New Edits collection will show that this was done
+              const editsMade = {
+                timeStamp: new Date(),
+                bugClosedOn: new Date().toLocaleString('en-US'),
+                collection: "Bug",
+                operation: "Bug Closed",
+                closedStatus: true,
+                bugAssigned: bugsId, // Shows bugs id thats classified
+                bugAssignedByUser: getLoggedInUser.fullName, // shows the cookie info for the logged in user
+                //fieldsUpdated: changesMadeByUserMessage, // Shows the message of what changed
+                auth: req.auth // Cookie information
+              }
+
+              // This is the function that pushes the editsMade array into the new Collection named Edits
+              let updatesMade = await saveEdit(editsMade);
+            // eeeeeeeeee EDITS MADE eeeeeeeeee //
+
+
         // Success Message
         res.status(200).json({Bugs_Closed: `Bug ${bugsId} Is Closed`, ClosedStatus: `Closed = True`}); // Success Message
-        debugBug(`Bug ${bugsId} Is Closed`);
+        debugBug(`Bug ${bugsId} Is Closed. Closed = True`);
       }
 
+
+      // IF USER ENTERS - //!FALSE
       else if(bugIsClosed.modifiedCount == 1 && closedFields.closed.toLowerCase() === "false"){
+
+
+            // eeeeeeeeee EDITS MADE eeeeeeeeee //
+              // When the user successfully makes an account in the New Edits collection will show that this was done
+              const editsMade = {
+                timeStamp: new Date(),
+                bugClosedOn: new Date().toLocaleString('en-US'),
+                collection: "Bug",
+                operation: "Bug Closed",
+                closedStatus: false,
+                bugAssigned: bugsId, // Shows bugs id thats classified
+                bugAssignedByUser: getLoggedInUser.fullName, // shows the cookie info for the logged in user
+                //fieldsUpdated: changesMadeByUserMessage, // Shows the message of what changed
+                auth: req.auth // Cookie information
+              }
+
+              // This is the function that pushes the editsMade array into the new Collection named Edits
+              let updatesMade = await saveEdit(editsMade);
+            // eeeeeeeeee EDITS MADE eeeeeeeeee //
+
         // Success Message
         res.status(200).json({Bugs_Open: `Bug ${bugsId} Is Still Open`, ClosedStatus: `Closed = False`}); // Success Message
-        debugBug(`Bug ${bugsId} Is Still Open`);
+        debugBug(`Bug ${bugsId} Is Still Open. Closed = False`);
       }
       else{
         // Error Message
@@ -1218,6 +1285,7 @@ router.get("/:bugId/comment/:commentId",  isLoggedIn(),   validId("bugId"),    a
 // Step 1 Define the ADD NEW COMMENT Schema    THESE WILL BE THE RULE SET FOR THE INPUTTED DATA
 const addNewCommentSchema = Joi.object({
 
+  /*
   author: Joi.string()
   .trim()
   .max(50)
@@ -1227,6 +1295,7 @@ const addNewCommentSchema = Joi.object({
     'string.max': 'Author must be at most {#limit} characters long', // if more than 50 characters
     'any.required': 'Author of Comment is Required', // if the password is left uncheck marked and not entered
   }),
+  */
 
   message: 
   Joi.string()
@@ -1252,26 +1321,32 @@ router.put("/:bugId/comment/new",   isLoggedIn(),   validId("bugId"), validBody(
   
     // For this line to work you have to have the body parser thats up top MIDDLEWARE
     const newCommentFields = req.body  // An .body is an object lets our body read the Bugs id
-    // .body holds all the information/fields the user enters
-  
 
 
+    /*
     if(!newCommentFields.author){
       res.status(400).json({Error: `Please Enter A Authors Name`});
     }
-    else if(!newCommentFields.message){
+    */
+
+    if(!newCommentFields.message){
       res.status(400).json({Error: `Please Enter A Message for Your Comment`});
     }
 
     else{  // ------ SUCCESS ------
         try {
+
+      // If the user is logged in then we will get THAT LOGGED IN USERS INFORMATION
+      const getLoggedInUser = await getUserById(newId(req.auth._id))  // req.auth._id   gets the current cookie logged in user
+
+
           // Calls the function and uses the users entered id and body params for the values to pass into function
-          const commentCreated = await newComment(bugsId, newCommentFields);
+          const commentCreated = await newComment(bugsId, newCommentFields, getLoggedInUser);
   
           // If the Bugs Classification is updated once. It will gain a property called modifiedCount if this is 1 its true
           if(commentCreated.modifiedCount == 1){
             // Success Message
-            res.status(200).json({Comment_Created: `Comment Added to Bug ${bugsId} by ${newCommentFields.author}`}); // Success Message
+            res.status(200).json({Comment_Created: `Comment Added to Bug ${bugsId} by ${getLoggedInUser.fullName/*newCommentFields.author*/}`}); // Success Message
             debugBug(`Comment Added to Bug ${bugsId} by ${newCommentFields.author}`);
           }
           else{
@@ -1743,7 +1818,6 @@ router.delete("/:bugId/test/:testId",    isLoggedIn(),    validId("bugId"),    a
 
 
 
-
 // tc tc tc tc tc tc tc tc tc tc tc  tc tc tc TEST CASES tc tc tc tc tc tc  tc tc tc tc tc tc tc //
 
 
@@ -1753,24 +1827,4 @@ router.delete("/:bugId/test/:testId",    isLoggedIn(),    validId("bugId"),    a
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 export {router as BugRouter};
-
-
-
-
-
-

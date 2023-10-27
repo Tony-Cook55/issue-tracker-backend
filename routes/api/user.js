@@ -477,7 +477,7 @@ router.put('/me',   isLoggedIn(),   validBody(updateSelfSchema), async (req,res)
                 operation: "Self-Edit Update User", 
                 userUpdated: getLoggedInUser._id,
                 fieldsUpdated: changesMadeMessage,
-                auth: {_id:getLoggedInUser._id, fullName:getLoggedInUser.fullName, email: getLoggedInUser.email, role:getLoggedInUser.role} // Cookie information
+                auth: req.auth //{_id:getLoggedInUser._id, fullName:getLoggedInUser.fullName, email: getLoggedInUser.email, role:getLoggedInUser.role} // Cookie information
               }
 
               // This is the function that pushes the editsMade array into the new Collection named Edits
@@ -932,7 +932,7 @@ const updateUserSchema = Joi.object({
 
 
 
-router.put("/:userId",    validId("userId"), validBody(updateUserSchema),   async (req, res) => {
+router.put("/:userId",   isLoggedIn(),  validId("userId"), validBody(updateUserSchema),   async (req, res) => {
 
   // This gets the ID from the users input
   const userId = req.userId;   // We don't need to have .params is due to the validId("id") is using the id from the params in function 
@@ -1002,7 +1002,7 @@ router.put("/:userId",    validId("userId"), validBody(updateUserSchema),   asyn
               operation: "Admin Update User", 
               userUpdated: showUsersNewInfo._id,
               fieldsUpdated: changesMadeByAdminMessage,
-              auth: {_id: showUsersNewInfo._id, fullName: showUsersNewInfo.fullName, email: showUsersNewInfo.email, role: showUsersNewInfo.role} // Cookie information
+              auth:  req.auth  //{_id: showUsersNewInfo._id, fullName: showUsersNewInfo.fullName, email: showUsersNewInfo.email, role: showUsersNewInfo.role} // Cookie information
             }
 
             // This is the function that pushes the editsMade array into the new Collection named Edits
@@ -1124,7 +1124,7 @@ router.delete("/delete/:userId",   isLoggedIn(),   validId("userId"),   async (r
 // eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee EDITS COLLECTION eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee //
 
 
-
+// TO DELETE ALL COMMENTS IN MONGODB GO TO TERMINAL AND ADD THIS:   db.Edits.deleteMany({})
 
 
 // ~~~~~~~~~~~~~~~~ FIND ALL USERS ~~~~~~~~~~~~~~~~ // http://localhost:5000/api/users/edits/list

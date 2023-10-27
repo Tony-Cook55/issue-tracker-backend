@@ -344,8 +344,17 @@ async function addNewBug(newBug, getLoggedInUser){ // the addedByUser is the coo
 
 
   // Set the default classification to "unclassified" Then later when user updates classification it will overwrite this
-  newBug.classification = "Unclassified"; // Capitalize here since users input will always start capital
+  //newBug.classification = "Unclassified"; // Capitalize here since users input will always start capital
 
+
+
+  // cccccc Classification cccccc //
+      // Set the default classification within the bugClassified object array named bugClassified.
+    newBug.bugClassified = {
+      // This will be overwritten when user updates classification
+      classification: "Unclassified",  // Set the default classification here
+    };
+  // cccccc Classification cccccc //
 
 
 
@@ -375,19 +384,56 @@ async function addNewBug(newBug, getLoggedInUser){ // the addedByUser is the coo
 
 
 // uuuuuuuuuuuuuuuuu UPDATE A BUG uuuuuuuuuuuuuuuuu //
-async function updateBug(bugsId, updateBugFields){
+async function updateBug(bugsId, updateBugFields, getLoggedInUser){  // getLoggedInUser == the call in for the logged in users info
 
   const dbConnected = await connect();
 
-  // This date is for searching purposes
-  updateBugFields.lastUpdated = new Date();
 
-  // Here we create a new item in the Database called lastUpdated and we set the time it was made at for its value
-  updateBugFields.bugLastUpdated = new Date().toLocaleString('en-US');
+
+  // This will create the array with the user's updated bug data
+  const updatingBugStructure = {
+
+    lastUpdatedByUser: getLoggedInUser._id, // gets the logged in users info thats called in from bug.js and finds the users id
+
+    // This date is for searching purposes
+    lastUpdated: new Date(),
+
+    // Here we create a new item in the Database called bugLastUpdatedOn and we set the time it was made at for its value
+    bugLastUpdatedOn: new Date().toLocaleString('en-US'),
+
+  };
+
+  // Update the bug by pushing the new updated data into the 'bugUpdated' array
+  const bugUpdated = await dbConnected.collection("Bug").updateOne(
+    { _id: new ObjectId(bugsId) },
+    {
+      $set: { // $set == allows us to overwrite the last item in the array instead of $push which will keep adding to array
+        
+        // Calls in the users data from the updateBugFields and makes the bug update those fields here
+        ...updateBugFields,
+        
+        // Plugs in the structure we want for an array called bugUpdated
+        bugUpdated: {
+          ...updatingBugStructure,
+        },
+      },
+    }
+  );
+
+
+  // - IF YOU DON'T WANT AN ARRAY WITH THE ITEMS ADD THESE - //
+  // updateBugFields.lastUpdatedByUser = getLoggedInUser._id;
+
+  // // This date is for searching purposes
+  // updateBugFields.lastUpdated = new Date();
+
+  // // Here we create a new item in the Database called lastUpdated and we set the time it was made at for its value
+  // updateBugFields.bugLastUpdated = new Date().toLocaleString('en-US');
 
 
   // gets the inputted id and the input for all the fields due to the:  ... gets all the values from the fields
-  const bugUpdated = await dbConnected.collection("Bug").updateOne({_id: new ObjectId(bugsId)},{$set:{...updateBugFields}});
+  //const bugUpdated = await dbConnected.collection("Bug").updateOne({_id: new ObjectId(bugsId)},{$set:{...updateBugFields}});
+
 
   return bugUpdated;
 }
@@ -396,26 +442,68 @@ async function updateBug(bugsId, updateBugFields){
 
 
 
+
+
 // ccccccccccccccccc CLASSIFY A BUG ccccccccccccccccc // approved, unapproved, duplicate, by default unclassified
-async function updateClassification(bugsId, classifyBugFields){
+async function updateClassification(bugsId, classifyBugFields, getLoggedInUser){ // getLoggedInUser == the call in for the logged in users info
 
   const dbConnected = await connect();
 
-  // This date is for searching purposes
-  classifyBugFields.lastUpdated = new Date();
 
-  // Here we create a new item in the Database called lastUpdated and we set the time it was made at for its value
-  classifyBugFields.bugLastUpdated = new Date().toLocaleString('en-US');
+  // This will create the array with the user's updated bugs classification
+  const classifyBugStructure = {
+    // gets the logged in users info thats called in from bug.js and finds the users id
+    lastClassifiedByUser: getLoggedInUser._id,
+
+    // This date is for searching purposes
+    classifiedOn: new Date(),
+
+    // Here we create a new item in the Database called bugLastUpdatedOn and we set the time it was made at for its value
+    bugClassifiedOn: new Date().toLocaleString('en-US'),
+  };
+
+  // Update the bug by pushing the new updated data into the 'bugUpdated' array
+  const bugClassificationUpdated = await dbConnected.collection("Bug").updateOne(
+    { _id: new ObjectId(bugsId) },
+    {
+      $set: { // $set == allows us to overwrite the last item in the array instead of $push which will keep adding to array
+        
+        /*
+          1. Create the object called bugClassified
+          2. Spread all the fields for the classifyBugFields which should only 
+          contain the classification field but spreading it in case we need more in the future
+          3. Spread all fields for classifyBugStructure within the bugClassified object
+          so it doesn't override what classifyBugFields appended.
+              - among us ඞ
+        */
+        bugClassified:{
+          ...classifyBugFields, // the user input for classification
+          ...classifyBugStructure
+        } 
+      }
+    },
+  );
 
 
-  // This date is for searching purposes
-  classifyBugFields.classifiedOn = new Date();
 
-  //This will create a new item called classifiedOn which sets the current date its classified on
-  classifyBugFields.bugClassifiedOn = new Date().toLocaleString('en-US');
+  // - IF YOU DON'T WANT AN ARRAY WITH THE ITEMS ADD THESE - //
+  // // This date is for searching purposes
+  // classifyBugFields.lastUpdated = new Date();
 
-  // gets the inputted id and the input for all the fields due to the:  ... gets all the values from the fields
-  const bugClassificationUpdated = await dbConnected.collection("Bug").updateOne({_id: new ObjectId(bugsId)},{$set:{...classifyBugFields}});
+  // // Here we create a new item in the Database called lastUpdated and we set the time it was made at for its value
+  // classifyBugFields.bugLastUpdated = new Date().toLocaleString('en-US');
+
+
+  // // This date is for searching purposes
+  // classifyBugFields.classifiedOn = new Date();
+
+  // //This will create a new item called classifiedOn which sets the current date its classified on
+  // classifyBugFields.bugClassifiedOn = new Date().toLocaleString('en-US');
+
+  // // gets the inputted id and the input for all the fields due to the:  ... gets all the values from the fields
+  // const bugClassificationUpdated = await dbConnected.collection("Bug").updateOne({_id: new ObjectId(bugsId)},{$set:{...classifyBugFields}});
+
+
 
   return bugClassificationUpdated;
 }
@@ -424,8 +512,10 @@ async function updateClassification(bugsId, classifyBugFields){
 
 
 
+
+
 // aaaaaaaaaaaaaaaaaa ASSIGN A BUG aaaaaaaaaaaaaaaaaa
-async function assignBugToUser(bugsId, assignedBugFields){
+async function assignBugToUser(bugsId, assignedBugFields, getLoggedInUser){ // getLoggedInUser == the call in for the logged in users info
 
 
   const dbConnected = await connect();
@@ -444,6 +534,7 @@ async function assignBugToUser(bugsId, assignedBugFields){
   const assignBugToUserStructure = {
     assignedToUserId: assignedBugFields.assignedToUserId,
     assignedToUser: assignedToUser.fullName, // Assign the full name of the user
+    assignedByUser: getLoggedInUser._id,  // shows the logged in user who assigned them
     assignedOn: new Date(),
     bugAssignedOn: new Date().toLocaleString('en-US'),
   };
@@ -468,28 +559,55 @@ async function assignBugToUser(bugsId, assignedBugFields){
 
 
 // xxxxxxxxxxxxxx CLOSING A BUG xxxxxxxxxxxxxx
-async function closeBug(bugsId, closedFields){
+async function closeBug(bugsId, closedFields, getLoggedInUser){
 
   const dbConnected = await connect();
 
 
+  // This will create the array with the user's updated bugs classification
+  const assignBugStructure = {
+    // gets the logged in users info thats called in from bug.js and finds the users id
+    lastClosedByUser: getLoggedInUser._id,
+
+    // This date is for searching purposes
+    closedOn: new Date(),
+
+    // Here we create a new item in the Database called bugClosedOn and we set the time it was made at for its value
+    bugClosedOn: new Date().toLocaleString('en-US'),
+  };
+
+  // Update the bug by pushing the new updated data into the 'bugUpdated' array
+  const bugClosed = await dbConnected.collection("Bug").updateOne(
+    { _id: new ObjectId(bugsId) },
+    {
+      $set: { // $set == allows us to overwrite the last item in the array instead of $push which will keep adding to array
+        
+        /*
+          1. Create the object called bugClassified
+          2. Spread all the fields for the closedFields which should only 
+          contain the closed value of True or False field but spreading it in case we need more in the future
+          3. Spread all fields for assignBugStructure within the closedFields object
+          so it doesn't override what classifyBugFields appended.
+              - among us ඞ
+        */
+        bugClosed:{
+          ...closedFields, // the user input for closed    WILL BE  -  True || False
+          ...assignBugStructure // The dates and users Id
+        } 
+      }
+    },
+  );
+
+
   // This date is for searching purposes
-  closedFields.lastUpdated = new Date();
-
-  // Here we create a new item in the Database called lastUpdated and we set the time it was made at for its value
-  closedFields.bugLastUpdated = new Date().toLocaleString('en-US');
-
-
-
-  // This date is for searching purposes
-  closedFields.closedOn = new Date();
+  //closedFields.closedOn = new Date();
 
   //This will create a new item called assignedOn which sets the current date its classified on
-  closedFields.bugClosedOn = new Date().toLocaleString('en-US');
+  //closedFields.bugClosedOn = new Date().toLocaleString('en-US');
 
 
   // gets the inputted id and the input for all the fields due to the:  ... gets all the values from the fields
-  const bugClosed = await dbConnected.collection("Bug").updateOne({_id: new ObjectId(bugsId)},{$set:{...closedFields}});
+  //const bugClosed = await dbConnected.collection("Bug").updateOne({_id: new ObjectId(bugsId)},{$set:{...closedFields}});
 
   return bugClosed;
 }
@@ -616,7 +734,7 @@ async function getCommentById(bugsId, commentsId) {
 
 
 // +++++++++++++++++++ NEW COMMENT +++++++++++++++++++ //      http://localhost:5000/api/bugs/652401b1c0e6b2745f847157/comment/new
-async function newComment(bugsId, newCommentFields){
+async function newComment(bugsId, newCommentFields, getLoggedInUser){
 
   const dbConnected = await connect();
 
@@ -628,9 +746,13 @@ async function newComment(bugsId, newCommentFields){
   // Here we make the structure in how we want the comment to be added in the array
   const commentStructure = {
     _id: commentId, // This allows us to add a new ID For each bug
-    author: newCommentFields.author, // this plugs in the users info for the Author
+    commentAuthorId: getLoggedInUser._id,
+    commentAuthor: getLoggedInUser.fullName,
+    //author: newCommentFields.author, // this plugs in the users info for the Author
     message: newCommentFields.message, // this plugs in the users message for the Comment
-    createdOn: new Date().toLocaleString('en-US'),
+
+    createdOn:new Date(),
+    commentCreatedOn: new Date().toLocaleString('en-US')
   };
 
 
