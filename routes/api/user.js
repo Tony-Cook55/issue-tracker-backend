@@ -724,7 +724,7 @@ router.post("/register",  validBody(registerUserSchema),   async (req, res) => {
 
 
           // Success Message
-          res.status(200).json({User_Added: `User ${newUser.fullName} Added With An Id of ${addingNewUser.insertedId}. Your AuthToken is ${authToken}`});
+          res.status(200).json({User_Added: `User ${newUser.fullName} Added With An Id of ${addingNewUser.insertedId}.`, Auth_Token: `Your AuthToken is ${authToken}`});
           debugUser(`User ${newUser.fullName} Added With An Id of ${addingNewUser.insertedId} \n`); // Message Appears in terminal
         }
         else{
@@ -1047,7 +1047,8 @@ router.delete("/delete/:userId",   isLoggedIn(),   validId("userId"),   async (r
   try {
 
       // This calls in the users info BEFORE DELETION so we can call in their info in the message
-      const showUsersInfo = await getUserById(usersId);
+      // If the user is logged in then we will get THAT LOGGED IN USERS INFORMATION
+      const getLoggedInUser = await getUserById(newId(req.auth._id))  // req.auth._id   gets the current cookie logged in user
 
 
     // Uses the Users id and plugs it into the deleteUser function
@@ -1073,8 +1074,8 @@ router.delete("/delete/:userId",   isLoggedIn(),   validId("userId"),   async (r
 
 
         // Success Message
-        res.status(200).json({User_Deleted: `User ${showUsersInfo.fullName} with a User Id of ${usersId} Deleted`, User_Id: usersId});
-        debugUser(`User ${showUsersInfo.fullName} with a User Id of ${usersId} Deleted`, usersId); // Message Appears in terminal
+        res.status(200).json({User_Deleted: `User ${getLoggedInUser.fullName} with a User Id of ${usersId} Deleted`, User_Id: usersId});
+        debugUser(`User ${getLoggedInUser.fullName} with a User Id of ${usersId} Deleted`, usersId); // Message Appears in terminal
       }
       else{
         // Error Message

@@ -393,8 +393,9 @@ async function updateBug(bugsId, updateBugFields, getLoggedInUser){  // getLogge
   // This will create the array with the user's updated bug data
   const updatingBugStructure = {
 
-    lastUpdatedByUser: getLoggedInUser._id, // gets the logged in users info thats called in from bug.js and finds the users id
-
+    lastUpdatedByUserId: getLoggedInUser._id, // gets the logged in users info thats called in from bug.js and finds the users id
+    lastUpdatedByUser: getLoggedInUser.fullName, 
+    
     // This date is for searching purposes
     lastUpdated: new Date(),
 
@@ -453,7 +454,8 @@ async function updateClassification(bugsId, classifyBugFields, getLoggedInUser){
   // This will create the array with the user's updated bugs classification
   const classifyBugStructure = {
     // gets the logged in users info thats called in from bug.js and finds the users id
-    lastClassifiedByUser: getLoggedInUser._id,
+    lastClassifiedByUserId: getLoggedInUser._id,
+    lastClassifiedByUser: getLoggedInUser.fullName, 
 
     // This date is for searching purposes
     classifiedOn: new Date(),
@@ -534,7 +536,10 @@ async function assignBugToUser(bugsId, assignedBugFields, getLoggedInUser){ // g
   const assignBugToUserStructure = {
     assignedToUserId: assignedBugFields.assignedToUserId,
     assignedToUser: assignedToUser.fullName, // Assign the full name of the user
-    assignedByUser: getLoggedInUser._id,  // shows the logged in user who assigned them
+
+    assignedByUserId: getLoggedInUser._id,  // shows the logged in user who assigned them
+    assignedByUser: getLoggedInUser.fullName, 
+
     assignedOn: new Date(),
     bugAssignedOn: new Date().toLocaleString('en-US'),
   };
@@ -567,7 +572,8 @@ async function closeBug(bugsId, closedFields, getLoggedInUser){
   // This will create the array with the user's updated bugs classification
   const assignBugStructure = {
     // gets the logged in users info thats called in from bug.js and finds the users id
-    lastClosedByUser: getLoggedInUser._id,
+    lastClosedByUserId: getLoggedInUser._id,
+    lastClosedByUser: getLoggedInUser.fullName, 
 
     // This date is for searching purposes
     closedOn: new Date(),
@@ -875,27 +881,39 @@ async function getAllTestCasesInBug(bugId){
 async function getTestCaseById(bugsId, testCasesId) {
   const dbConnected = await connect();
 
+
+  // Convert the testCasesId to an ObjectId if it's not already
+  const testCaseObjectId = testCasesId instanceof ObjectId ? testCasesId : new ObjectId(testCasesId);
+
+
   // Finds the Bugs Id 
   const foundBugsId = await dbConnected.collection("Bug").findOne({ _id: new ObjectId(bugsId) });
 
 
-  // If the bug is found Do This
-  if (foundBugsId) {  
-    // in the bug we access the array named testCases. Next we use a find to allow us to do a match to check if the entered Id by the user matches the pre-existing testCase Id
-    const foundTestCasesId = foundBugsId.testCases.find(originalTestCaseId => originalTestCaseId._id.toString() === testCasesId);
 
 
-    // If the testCase id is found from above then we return it out to be displayed for user
-    if (foundTestCasesId) {
-      return foundTestCasesId; 
-    } 
-    else {
-      return null; // testCases not found within the bug
-    }
+
+  if (!foundBugsId) {
+    return null; // Bug with entered ID is not found
   }
 
+  // looks to see if the testCases array is real
+  if (!Array.isArray(foundBugsId.testCases)) {
+    return null; // The testCases array doesn't exist or is not an array
+  }
 
-  return null; // Bug with Entered Id is not found throw my else error
+  // Iterate through the testCases array to find the matching test case
+  const foundTestCasesId = foundBugsId.testCases.find(originalTestCase => {
+    if (originalTestCase && originalTestCase._id) {
+      return originalTestCase._id.equals(testCaseObjectId);
+    }
+    return false;
+  });
+
+  return foundTestCasesId || null; // Return the found test case or null if not found
+
+
+  
 }
 // !!!!!!!!!!!!!!! SEARCHING FOR A TEST CASE IN BUG BY ID !!!!!!!!!!!!!!! //
 
@@ -905,7 +923,7 @@ async function getTestCaseById(bugsId, testCasesId) {
 
 
 // +++++++++++++++++++ NEW TEST CASE  +++++++++++++++++++ // 
-async function newTestCase(bugsId, newTestCaseFields){
+async function newTestCase(bugsId, newTestCaseFields, getLoggedInUser){
 
   const dbConnected = await connect();
 
@@ -915,69 +933,83 @@ async function newTestCase(bugsId, newTestCaseFields){
 
 
 
-// Auto make appliedFixOnDate to "No Fix Date Yet" by default
-let appliedFixOnDate = "No Fix Date Yet";
-
-// Now if the user enters true for passed we will set it to the correctly formatted date they added 
-if (newTestCaseFields.passed === "True" || newTestCaseFields.passed === "true") {
-
-  // If the test case is passed, use the users entered appliedFixOnDate
-  appliedFixOnDate = newTestCaseFields.appliedFixOnDate;
+  // Auto make appliedFixOnDate to "No Fix Date Yet" by default so if user enters False it will be this
+  let appliedFixOnDate = "No Fix Date Yet Test Case Did Not Pass";
 
 
-  // --- THIS IS ALL HERE TO ALLOW THE CURRENT TIME TO BE ADDED BEHIND USERS INPUTTED DATE TO SHOW WHEN THEY ADDED IT SO THEY DON'T HAVE TO --- //
-    // Get the current time
-    const currentTime = new Date();
-    const hours = currentTime.getHours();
-    const minutes = currentTime.getMinutes();
-    const seconds = currentTime.getSeconds();
-  
-    // Determine whether it's AM or PM
-    const amOrPm = hours >= 12 ? "PM" : "AM";
-  
-    // Format hours in 12-hour format
-    const formattedHours = hours % 12 || 12;
-  
-    // Append the time with AM or PM to the user's date
-    appliedFixOnDate += ` ${formattedHours}:${minutes}:${seconds} ${amOrPm}`;
-  // --- THIS IS ALL HERE TO ALLOW THE CURRENT TIME TO BE ADDED BEHIND USERS INPUTTED DATE TO SHOW WHEN THEY ADDED IT SO THEY DON'T HAVE TO --- //
-
-}
+  // Convert "passed" field value to lowercase for case-insensitive comparison
+  //const passedValue = newTestCaseFields.passed.toLowerCase();
 
 
+  // Now if the user enters true for passed we will set it to the correctly formatted date they added 
+  if (newTestCaseFields.passed === "True") {
 
-// This will create the array with the users data
-const testCaseStructure = {
-
-  _id: testCaseId,
-
-  title: newTestCaseFields.title,
-
-  // Users inputted Id for the User that has a Role of Quality Analysis
-  userId: newTestCaseFields.userId,
-
-  createdOn: new Date().toLocaleString('en-US'),
-  passed: newTestCaseFields.passed,
-  versionRelease: newTestCaseFields.versionRelease,
-
-  // This will either plug in the default message or the users input date depending on if passed == true || false
-  appliedFixOnDate: appliedFixOnDate,
-};
+    // If the test case is passed, use the users entered appliedFixOnDate
+    appliedFixOnDate = newTestCaseFields.appliedFixOnDate;
 
 
+    // --- THIS IS ALL HERE TO ALLOW THE CURRENT TIME TO BE ADDED BEHIND USERS INPUTTED DATE TO SHOW WHEN THEY ADDED IT SO THEY DON'T HAVE TO --- //
+      // Get the current time
+      const currentTime = new Date();
+      const hours = currentTime.getHours();
+      const minutes = currentTime.getMinutes();
+      const seconds = currentTime.getSeconds();
+    
+      // Determine whether it's AM or PM
+      const amOrPm = hours >= 12 ? "PM" : "AM";
+    
+      // Format hours in 12-hour format
+      const formattedHours = hours % 12 || 12;
+    
+      // Append the time with AM or PM to the user's date
+      appliedFixOnDate += ` ${formattedHours}:${minutes}:${seconds} ${amOrPm}`;
+    // --- THIS IS ALL HERE TO ALLOW THE CURRENT TIME TO BE ADDED BEHIND USERS INPUTTED DATE TO SHOW WHEN THEY ADDED IT SO THEY DON'T HAVE TO --- //
 
-// Updates the bug with the new array
-const createdTestCase = await dbConnected.collection("Bug").updateOne(
-  { _id: new ObjectId(bugsId) },
-  {
-    $push: {
-      testCases: testCaseStructure,
-    },
   }
-);
 
 
-return createdTestCase;
+
+  // This will create the array with the users data
+  const testCaseStructure = {
+
+    _id: testCaseId,
+
+    title: newTestCaseFields.title,
+
+    // Users inputted Id for the User that has a Role of Quality Analysis
+    //userId: newTestCaseFields.userId,
+
+    //GEts the logged in users info
+    testCaseCreatedByUserId: getLoggedInUser._id,
+    testCaseCreatedByUser: getLoggedInUser.fullName,
+
+    createdOn:new Date(),
+    testCaseCreatedOn: new Date().toLocaleString('en-US'),
+
+    passed: newTestCaseFields.passed, //passedValue.charAt(0).toUpperCase() + passedValue.slice(1), // Capitalize the first letter for true or false
+    versionRelease: newTestCaseFields.versionRelease,
+
+    // This will either plug in the default message or the users input date depending on if passed == true || false
+    appliedFixOnDate: appliedFixOnDate,
+  };
+
+
+
+  // Updates the bug with the new array
+  const createdTestCase = await dbConnected.collection("Bug").updateOne(
+    { _id: new ObjectId(bugsId) },
+    {
+      $push: {
+        testCases: testCaseStructure,
+      },
+    }
+  );
+
+
+
+
+
+  return  createdTestCase;
 
 }
 // +++++++++++++++++++ NEW TEST CASE +++++++++++++++++++ //
@@ -990,7 +1022,7 @@ return createdTestCase;
 
 
 // uuuuuuuuuuuuuuuuu UPDATE A TEST CASE uuuuuuuuuuuuuuuuu //
-async function updateTestCase(bugsId, testCasesId, updatedTestCaseFields){
+async function updateTestCase(bugsId, testCasesId, updatedTestCaseFields, getLoggedInUser){
 
   const dbConnected = await connect();
 
@@ -1000,6 +1032,17 @@ async function updateTestCase(bugsId, testCasesId, updatedTestCaseFields){
     _id: new ObjectId(bugsId), // Finds the bug Id
     "testCases._id": new ObjectId(testCasesId)  // Finds The specific Test Case Id The User enters into testCasesId
   };
+
+    // Create a new field `lastUpdated` with the current date and time
+    updatedTestCaseFields.lastUpdated = new Date();
+
+    updatedTestCaseFields.testCaseLastUpdatedOn = new Date().toLocaleString('en-US');
+
+    // Gets logged in users info
+    updatedTestCaseFields.testCaseUpdatedByUserId = getLoggedInUser._id;
+    updatedTestCaseFields.testCaseUpdatedByUser = getLoggedInUser.fullName;
+
+
 
 
   // This makes it to where the users inputted fields will now be set to what they enter

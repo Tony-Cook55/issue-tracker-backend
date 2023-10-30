@@ -677,9 +677,21 @@ router.put("/:bugId",   isLoggedIn(),   validId("bugId"), validBody(updateBugSch
 
 
 
+
 // ccccccccccccccccc CLASSIFY A BUG ccccccccccccccccc  http://localhost:5000/api/bugs/classify/(ID here)/
 
 // Step 1 Define the Login User Schema    THESE WILL BE THE RULE SET FOR THE INPUTTED DATA
+
+
+
+
+
+
+
+
+
+
+
 const classifyBugSchema = Joi.object({
 
   classification: Joi.string()
@@ -692,8 +704,8 @@ const classifyBugSchema = Joi.object({
   //   "Duplicate", "duplicate",
   // ) 
   
-  // Witchcraft that will turn the users input into a capital letter to allow us to search using capitalize later
-  .custom((value, helpers) => {
+  // Will turn the users input into a capital letter to allow us to search using capitalize later
+  .custom((value, helpers) => { // THIS HERE IS WHAT CAPITALIZES USERS INPUT
     const capitalizedValue = value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
     if (["Approved", "Unapproved", "Duplicate"].includes(capitalizedValue)) {
       return capitalizedValue;
@@ -729,7 +741,7 @@ router.put("/:bugId/classify",    isLoggedIn(),   validId("bugId"), validBody(cl
     res.status(400).json({Error: `Please Enter A Classification of: Approved, Unapproved, Duplicate, or Unclassified`});
   }
   // IF there is a response but it doesn't match Approved, Unapproved, Duplicate, or Unclassified throw error
-  else if( // Makes things Uppercase
+  else if( // Makes all responses lowercase to match with our lowercase fields
   classifyBugFields.classification.toLowerCase() !== "approved" &&
   classifyBugFields.classification.toLowerCase() !== "unapproved" &&
   classifyBugFields.classification.toLowerCase() !== "duplicate" &&
@@ -1314,8 +1326,7 @@ const addNewCommentSchema = Joi.object({
 
 router.put("/:bugId/comment/new",   isLoggedIn(),   validId("bugId"), validBody(addNewCommentSchema),     async (req,res) => {
 
-  
-  
+
     //GETS the users input for the bugs id from the url
     const bugsId = req.bugId;
   
@@ -1336,8 +1347,8 @@ router.put("/:bugId/comment/new",   isLoggedIn(),   validId("bugId"), validBody(
     else{  // ------ SUCCESS ------
         try {
 
-      // If the user is logged in then we will get THAT LOGGED IN USERS INFORMATION
-      const getLoggedInUser = await getUserById(newId(req.auth._id))  // req.auth._id   gets the current cookie logged in user
+          // If the user is logged in then we will get THAT LOGGED IN USERS INFORMATION
+          const getLoggedInUser = await getUserById(newId(req.auth._id))  // req.auth._id   gets the current cookie logged in user
 
 
           // Calls the function and uses the users entered id and body params for the values to pass into function
@@ -1345,6 +1356,28 @@ router.put("/:bugId/comment/new",   isLoggedIn(),   validId("bugId"), validBody(
   
           // If the Bugs Classification is updated once. It will gain a property called modifiedCount if this is 1 its true
           if(commentCreated.modifiedCount == 1){
+
+
+              // eeeeeeeeee EDITS MADE eeeeeeeeee //
+                // When the user successfully makes an account in the New Edits collection will show that this was done
+                const editsMade = {
+                  timeStamp: new Date(),
+                  commentCreatedOn: new Date().toLocaleString('en-US'),
+                  collection: "Bug",
+                  operation: "New Comment",
+                  commentOnBug: bugsId, // Shows bugs id thats classified
+                  comment: newCommentFields.message, // shows what user put in the body.params
+                  commentByUser: getLoggedInUser.fullName, // shows the cookie info for the logged in user
+                  //fieldsUpdated: changesMadeByUserMessage, // Shows the message of what changed
+                  auth: req.auth // Cookie information
+                }
+
+                // This is the function that pushes the editsMade array into the new Collection named Edits
+                let updatesMade = await saveEdit(editsMade);
+              // eeeeeeeeee EDITS MADE eeeeeeeeee //
+
+
+
             // Success Message
             res.status(200).json({Comment_Created: `Comment Added to Bug ${bugsId} by ${getLoggedInUser.fullName/*newCommentFields.author*/}`}); // Success Message
             debugBug(`Comment Added to Bug ${bugsId} by ${newCommentFields.author}`);
@@ -1507,7 +1540,6 @@ router.get("/:bugId/test/:testId",   isLoggedIn(),   validId("bugId"),    async 
     const testCasesID = req.params.testId;
 
 
-
     // Plugs both our bug and Test Case id's into the function
     const receivedTestCasesId = await getTestCaseById(bugsId, testCasesID);
 
@@ -1539,9 +1571,9 @@ router.get("/:bugId/test/:testId",   isLoggedIn(),   validId("bugId"),    async 
 
 
 
-// ++++++++++++++++ ADDING A NEW COMMENT TO BUG ++++++++++++++++++    //http://localhost:5000/api/bugs/65241671c43c2e5dd553db87/test/new
+// ++++++++++++++++ ADDING A NEW TEST CASE TO BUG ++++++++++++++++++    //http://localhost:5000/api/bugs/65241671c43c2e5dd553db87/test/new
 
-// Step 1 Define the ADD NEW COMMENT Schema    THESE WILL BE THE RULE SET FOR THE INPUTTED DATA
+// Step 1 Define the ADD NEW TEST CASE Schema    THESE WILL BE THE RULE SET FOR THE INPUTTED DATA
 
 
 // This makes the user have to follow a strict input when entering the appliedFixOnDate
@@ -1559,24 +1591,34 @@ const addNewTestCaseSchema = Joi.object({
     'any.required': 'Title is required',
   }),
 
-  userId: 
-  Joi.string()
-  .trim()
-  .required()
-  .messages({ // These are custom messages that will show based on the "type": "string.empty", that throws on an error
-    'string.empty': 'Please Enter a Valid User Id', // If Comment is left blank
-    'any.required': 'Please Enter a Valid User Id', // if the Comment is left uncheck marked and not entered
-  }),
+  // IF making it where user enters a ID in body.params
+  // userId: 
+  // Joi.string()
+  // .trim()
+  // .required()
+  // .messages({ // These are custom messages that will show based on the "type": "string.empty", that throws on an error
+  //   'string.empty': 'Please Enter a Valid User Id', // If Comment is left blank
+  //   'any.required': 'Please Enter a Valid User Id', // if the Comment is left uncheck marked and not entered
+  // }),
+
 
   passed: Joi.string()
   .trim()
-  .valid(
-    "True",
-    "true",
-    "False",
-    "false"
-  )
+  // .valid(
+  //   "True",
+  //   "true",
+  //   "False",
+  //   "false"
+  // )
   .required()
+  .custom((value, helpers) => { // THIS HERE IS WHAT CAPITALIZES USERS INPUT
+    const capitalizedValue = value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+    if (["True", "False"].includes(capitalizedValue)) {
+      return capitalizedValue;
+    } else {
+      return helpers.message('Passed Must Be True or False');
+    }
+  })
   .messages({ // These are custom messages that will show based on the "type": "string.empty", that throws on an error
     'string.empty': 'Must Be True or False', // If passed is left blank
     'any.required': 'Must Be True or False', // if the passed is left uncheck marked and not entered
@@ -1617,31 +1659,56 @@ router.put("/:bugId/test/new",  isLoggedIn(),   validId("bugId"), validBody(addN
     const bugsId = req.bugId;
   
     // For this line to work you have to have the body parser thats up top MIDDLEWARE
-    const newTestCaseFields = req.body  // An .body is an object lets our body read the Bugs id
-    // .body holds all the information/fields the user enters
-  
+    const newTestCaseFields = req.body
 
+  
       // THIS USES THE SAME CODE AS FIND USER BY ID
       // This line will see if the users input == a _id of a user in the database
-      const userIdFound = await getUserById(newTestCaseFields.userId);
+      //const userIdFound = await getUserById(newTestCaseFields.userId);
 
 
-      // If user properly enters a valid ID of a USER!
+      // If the user is logged in then we will get THAT LOGGED IN USERS INFORMATION
+      const getLoggedInUser = await getUserById(newId(req.auth._id))  // req.auth._id   gets the current cookie logged in user
+
+
+      // If the logged in user has a role of QUALITY ANALYST THEY PASS
       // CHECK TO SEE IF THEIR ROLE HAS QUALITY ANALYST
-      if(userIdFound.role.includes("Quality Analyst")){
+      if(getLoggedInUser.role.includes("Quality Analyst")){ // SUCCESS
             // Success Message
-            debugBug(`User with ID ${userIdFound._id} is a Quality Analyst.\n`); // Message Appears in terminal
+            debugBug(`User ${getLoggedInUser.fullName} With a User Id ${getLoggedInUser._id} is a Quality Analyst.\n`); // Message Appears in terminal
 
           try {
+
             // Calls the function and uses the users entered id and body params for the values to pass into function
-            const testCaseCreated = await newTestCase(bugsId, newTestCaseFields);
+            const testCaseCreated = await newTestCase(bugsId, newTestCaseFields, getLoggedInUser);
     
             // If the Bug is updated once. It will gain a property called modifiedCount if this is 1 its true
             if(testCaseCreated.modifiedCount === 1){
+
+
+                // eeeeeeeeee EDITS MADE eeeeeeeeee //
+                  // When the user successfully makes an account in the New Edits collection will show that this was done
+                  const editsMade = {
+                    timeStamp: new Date(),
+                    testCaseCreatedOn: new Date().toLocaleString('en-US'),
+                    collection: "Bug",
+                    operation: "New Test Case",
+                    testCaseOnBug: bugsId, // Shows bugs id thats classified
+                    testCaseAdded: newTestCaseFields.title, // shows what user put in the body.params for title
+                    testCaseAddedByUser: getLoggedInUser.fullName, // shows the cookie info for the logged in user
+                    testCasePassed: newTestCaseFields.passed, // true or false
+                    auth: req.auth // Cookie information
+                  }
+
+                  // This is the function that pushes the editsMade array into the new Collection named Edits
+                  let updatesMade = await saveEdit(editsMade);
+                // eeeeeeeeee EDITS MADE eeeeeeeeee //
+
+
               // Success Message
-              res.status(200).json({TestCase_Created: `Test Case Has Been Added to Bug ${bugsId} by ${userIdFound.fullName}`}); // Success Message
+              res.status(200).json({TestCase_Created: `Test Case Has Been Added to Bug ${bugsId} by ${getLoggedInUser.fullName}`}); // Success Message
               
-              debugBug(`Test Case Has Been Added to Bug ${bugsId} by ${userIdFound.fullName}`);
+              debugBug(`Test Case Has Been Added to Bug ${bugsId} by ${getLoggedInUser.fullName}`);
             }
             else{
               // Error Message
@@ -1653,14 +1720,14 @@ router.put("/:bugId/test/new",  isLoggedIn(),   validId("bugId"), validBody(addN
             res.status(500).json({Error: err.stack});
           }
       }
-      else{               // Error Message
-        res.status(404).json({Error: `User ${newTestCaseFields.userId} Is Not a Quality Analyst`});
-        debugBug(`User ${newTestCaseFields.userId} Is Not a Quality Analyst`); // Message Appears in terminal
+      else{               // Error Message for if user is not a QUALITY ANALYST
+        res.status(404).json({Error: `User ${getLoggedInUser.fullName} With a User Id of ${getLoggedInUser._id} Is Not a Quality Analyst`});
+        debugBug(`User ${getLoggedInUser.fullName} With a User Id of ${getLoggedInUser._id} Is Not a Quality Analyst`); // Message Appears in terminal
       }
 
   });
 
-// ++++++++++++++++ ADDING A NEW COMMENT TO BUG ++++++++++++++++++
+// ++++++++++++++++ ADDING A NEW TEST CASE TO BUG ++++++++++++++++++
 
 
 
@@ -1684,22 +1751,30 @@ const updateTestCasesSchema = Joi.object({
   }),
 
 
-  userId: 
-  Joi.string()
-  .trim()
-  .messages({ // These are custom messages that will show based on the "type": "string.empty", that throws on an error
-    'string.empty': 'Please Enter a Valid User Id', // If userId is left blank
-  }),
+  // userId: 
+  // Joi.string()
+  // .trim()
+  // .messages({ // These are custom messages that will show based on the "type": "string.empty", that throws on an error
+  //   'string.empty': 'Please Enter a Valid User Id', // If userId is left blank
+  // }),
 
 
   passed: Joi.string()
   .trim()
-  .valid(
-    "True",
-    "true",
-    "False",
-    "false"
-  )
+  // .valid(
+  //   "True",
+  //   "true",
+  //   "False",
+  //   "false"
+  // )
+  .custom((value, helpers) => { // THIS HERE IS WHAT CAPITALIZES USERS INPUT
+    const capitalizedValue = value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+    if (["True", "False"].includes(capitalizedValue)) {
+      return capitalizedValue;
+    } else {
+      return helpers.message('Passed Must Be True or False');
+    }
+  })
   .messages({ // These are custom messages that will show based on the "type": "string.empty", that throws on an error
     'string.empty': 'Must Be True or False', // If passed is left blank
   }),
@@ -1738,6 +1813,7 @@ router.put("/:bugId/test/:testId",   isLoggedIn(),   validId("bugId"), validBody
     const bugsId = req.bugId; //
 
 
+    // Gets the test case that is put in the url after /test/ HERE!!!
     const testCasesId= req.params.testId
 
 
@@ -1745,33 +1821,110 @@ router.put("/:bugId/test/:testId",   isLoggedIn(),   validId("bugId"), validBody
 
     // For this line to work you have to have the body parser thats up top MIDDLEWARE
     const updatedTestCaseFields = req.body;  // An .body is an object in updatedBug lets our body read the users id
-    // .body holds all the information/fields the user enters
 
 
-    try {
+    // If the user is logged in then we will get THAT LOGGED IN USERS INFORMATION
+    const getLoggedInUser = await getUserById(newId(req.auth._id))  // req.auth._id   gets the current cookie logged in user
 
 
-      // Calls the function and uses the users entered id and body params for the values to pass into function
-      const testCaseUpdated = await updateTestCase(bugsId, testCasesId, updatedTestCaseFields);
 
-      // If the Bug is updated once it will gain a property called modifiedCount if this is 1 its true
-      if(testCaseUpdated.modifiedCount == 1){
-        // Success Message
-        res.status(200).json({Bug_Updated: `Test Case ${testCasesId} updated`,     });
-        //the length of the array of changes. IF array is 0? say message  'No changes made'
-        //Changes_Made_To: changesMadeByUserArray.length > 0 ? changesMadeByUserArray : 'No changes made'}); // Success Message
-        debugBug(`Test Case ${testCasesId} Updated`);
+
+
+    // If the logged in user has a role of QUALITY ANALYST THEY PASS
+    // CHECK TO SEE IF THEIR ROLE HAS QUALITY ANALYST
+    if(getLoggedInUser.role.includes("Quality Analyst")){ // SUCCESS
+      // Success Message
+      debugBug(`User ${getLoggedInUser.fullName} With a User Id ${getLoggedInUser._id} is a Quality Analyst.\n`); // Message Appears in terminal
+
+      try {
+
+
+                // ------ CHANGES MADE ------ //
+
+                    // Gets the original data of the test case
+                    const originalTestCase = await getTestCaseById(bugsId, testCasesId);
+                    if (!originalTestCase) {
+                      res.status(404).json({ Id_Error: `Bug Id ${bugsId} or Test Case Id ${testCasesId} Not Found` });
+                      return;
+                    }
+
+
+                    // This is an empty array to store the changes the user makes
+                    const changesMadeByUser = [];
+
+
+                      // Compare the fields user enters to the original fields in getAllUsers()
+                      for (const key in updatedTestCaseFields) {
+                        if (originalTestCase[key] !== updatedTestCaseFields[key]) {
+                          const change = {
+                            field: key,
+                            oldValue: originalTestCase[key],
+                            newValue: updatedTestCaseFields[key]
+                          };
+                          changesMadeByUser.push(change);
+                        }
+                      }
+
+
+                    // This is the message i will call down to display both the field changed and the value that was inputted
+                    const changesMadeByUserMessage = changesMadeByUser.length > 0
+                    ? changesMadeByUser.map(change => ` Field ${change.field} was '${change.oldValue}' ~ User ${getLoggedInUser.fullName} Changed ${change.field} to '${change.newValue}' `)
+                    : 'No changes made';
+                // ------ CHANGES MADE ------ //
+
+
+
+
+
+
+        // Calls the function and uses the users entered id and body params for the values to pass into function
+        const testCaseUpdated = await updateTestCase(bugsId, testCasesId, updatedTestCaseFields, getLoggedInUser);
+
+        // If the Bug is updated once it will gain a property called modifiedCount if this is 1 its true
+        if(testCaseUpdated.modifiedCount == 1){
+
+
+
+                  // eeeeeeeeee EDITS MADE eeeeeeeeee //
+                    // When the user successfully makes an account in the New Edits collection will show that this was done
+                    const editsMade = {
+                      timeStamp: new Date(),
+                      testCaseUpdatedOn: new Date().toLocaleString('en-US'),
+                      collection: "Bug",
+                      operation: "Test Case Updated",
+                      testCaseOnBug: bugsId, // Shows bugs id thats classified
+                      testCaseUpdated: testCasesId, // shows what user put in the body.params for title
+                      testCaseUpdatedByUser: getLoggedInUser.fullName, // shows the cookie info for the logged in user
+                      changes_Made_To: changesMadeByUserMessage,
+                      auth: req.auth // Cookie information
+                    }
+
+                    // This is the function that pushes the editsMade array into the new Collection named Edits
+                    let updatesMade = await saveEdit(editsMade);
+                  // eeeeeeeeee EDITS MADE eeeeeeeeee //
+
+
+
+          // Success Message
+          res.status(200).json({Bug_Updated: `Test Case ${testCasesId} updated`,  Changes_Made_To: changesMadeByUserMessage });
+          //the length of the array of changes. IF array is 0? say message  'No changes made'
+          //Changes_Made_To: changesMadeByUserArray.length > 0 ? changesMadeByUserArray : 'No changes made'}); // Success Message
+          debugBug(`Test Case ${testCasesId} Updated`);
+        }
+        else{
+          // Error Message when nothing has changed in the fields
+          res.status(404).json({Update_Error: `Please Update a Field to Properly Apply Update to Test Case ${testCasesId}`});
+          debugBug(`Please Update a Field to Properly Apply Update to Test Case ${testCasesId}`); // Message Appears in terminal
+        }
       }
-      else{
-        // Error Message
-        res.status(404).json({Id_Error: `Bug Id ${bugsId} or Test Case Id ${testCasesId} Not Found`});
-        debugBug(`Bug Id ${bugsId} or Test Case Id ${testCasesId} Not Found \n`); // Message Appears in terminal
+      catch (err) {
+        res.status(500).json({Error: err.stack});
       }
+    } // end of check user for being Quality Analyst
+    else{ // User failed being a Quality Analyst
+      res.status(404).json({Error: `User ${getLoggedInUser.fullName} With a User Id of ${getLoggedInUser._id} Is Not a Quality Analyst`});
+      debugBug(`User ${getLoggedInUser.fullName} With a User Id of ${getLoggedInUser._id} Is Not a Quality Analyst`); // Message Appears in terminal
     }
-    catch (err) {
-      res.status(500).json({Error: err.stack});
-    }
-
 });
 // uuuuuuuuuuuuuuuuu UPDATE A TEST CASE uuuuuuuuuuuuuuuuu
 
