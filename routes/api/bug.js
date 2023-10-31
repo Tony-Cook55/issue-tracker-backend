@@ -31,6 +31,14 @@ import { newId } from "../../database.js";
 
 
 
+// aaaaaaaaaaaaaaaa AUTHORIZE USERS aaaaaaaaaaaaaaaa//
+
+//This calls in a function from merlin that will send an error if a users Role does not match the permissions we gave that role in the Collection
+import { hasPermission } from "@merlin4/express-auth";
+
+// aaaaaaaaaaaaaaaa AUTHORIZE USERS aaaaaaaaaaaaaaaa//
+
+
 
 // Imports all the  BUG CRUD functions from the database.js file                  assignBugToUser Also Uses getUserById
 import { connect, getAllBugs, getBugById, addNewBug, updateBug, updateClassification, assignBugToUser, getUserById, closeBug,      deleteBug } from "../../database.js";
@@ -93,7 +101,7 @@ router.use(express.urlencoded({extended:false}));
 // bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb BUGS bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb //
 
 // ~~~~~~~~~~~~~~~~ FIND ALL BUGS ~~~~~~~~~~~~~~~~ //    http://localhost:5000/api/bugs/list
-router.get("/list",   isLoggedIn(),   async (req, res) => {
+router.get("/list",   isLoggedIn(), hasPermission("canViewData"),  async (req, res) => {
   try {
 
     // ~~~~ OLD WAY TO JUST SEARCH FOR ALL ~~~~
@@ -335,7 +343,7 @@ router.get("/list",   isLoggedIn(),   async (req, res) => {
 
 //!!!!!!!!!!!!!!!!!!  SEARCHING BY ID !!!!!!!!!!!!!!!!   http://localhost:5000/api/bugs/ (id of User)
 // What ever is in the .get("/:HERE!") you must make it the same as what in validId("HERE!")
-router.get("/:bugId",   isLoggedIn(),  validId("bugId"),    async (req, res) => {
+router.get("/:bugId",   isLoggedIn(),   hasPermission("canViewData"),   validId("bugId"),    async (req, res) => {
 
   try {
 
@@ -424,7 +432,7 @@ const addNewBugSchema = Joi.object({
 
 
 
-router.post("/new",   isLoggedIn(),   validBody(addNewBugSchema),    async (req, res) => {
+router.post("/new",   isLoggedIn(), hasPermission("canCreateBug"),  validBody(addNewBugSchema),    async (req, res) => {
 
     // Getting the users data from the body like a form
     const newBug = req.body;
@@ -574,7 +582,7 @@ const updateBugSchema = Joi.object({
 
 
 
-router.put("/:bugId",   isLoggedIn(),   validId("bugId"), validBody(updateBugSchema),   async (req, res) => {
+router.put("/:bugId",   isLoggedIn(),  hasPermission("canEditAnyBug, canEditIfAssignedTo, canEditMyBug"),   validId("bugId"), validBody(updateBugSchema),   async (req, res) => {
 
 
     // This gets the ID from the users input
@@ -724,7 +732,7 @@ const classifyBugSchema = Joi.object({
 
 
 
-router.put("/:bugId/classify",    isLoggedIn(),   validId("bugId"), validBody(classifyBugSchema),     async (req,res) => {
+router.put("/:bugId/classify",    isLoggedIn(),  hasPermission("canClassifyAnyBug, canEditIfAssignedTo, canEditMyBug"),  validId("bugId"), validBody(classifyBugSchema),     async (req,res) => {
 
 // OPTIONS TO CLASSIFY FOR: approved, unapproved, duplicate, by default unclassified
 
@@ -858,7 +866,7 @@ const assignBugSchema = Joi.object({
 
 
 
-router.put("/:bugId/assign",    isLoggedIn(),   validId("bugId"), validBody(assignBugSchema),    async (req,res) => {
+router.put("/:bugId/assign",  hasPermission("canReassignAnyBug, canReassignIfAssignedTo, canEditMyBug"),  isLoggedIn(),   validId("bugId"), validBody(assignBugSchema),    async (req,res) => {
 
   //GETS the users input for the bugs id from the url
   const bugsId = req.bugId;
@@ -1011,7 +1019,7 @@ const closeBugSchema = Joi.object({
 
 
 
-router.put("/:bugId/close",     isLoggedIn(),    validId("bugId"), validBody(closeBugSchema),     async (req,res) => {
+router.put("/:bugId/close",  isLoggedIn(),  hasPermission("canCloseAnyBug"),  validId("bugId"), validBody(closeBugSchema),     async (req,res) => {
 
 
   // This gets the ID from the users input
@@ -1208,7 +1216,7 @@ router.delete("/:bugId",   isLoggedIn(),   async (req, res) => {
 
 
 // ~~~~~~~~~~~~~~~~ FIND ALL COMMENTS IN BUG ~~~~~~~~~~~~~~~~ //    http://localhost:5000/api/bugs/(Id of Bug)/comment/list
-router.get("/:bugId/comment/list",    isLoggedIn(),   validId("bugId"),   async (req, res) => {
+router.get("/:bugId/comment/list",    isLoggedIn(),  hasPermission("canViewData"),  validId("bugId"),   async (req, res) => {
   try {
 
     const bugId = req.bugId;
@@ -1248,7 +1256,7 @@ router.get("/:bugId/comment/list",    isLoggedIn(),   validId("bugId"),   async 
 
 //!!!!!!!!!!!!!!!!!!  SEARCHING FOR A COMMENT IN BUG BY ID !!!!!!!!!!!!!!!!   http://localhost:5000/api/bugs/(id of Bug)/comment/(id of Comment)
 // What ever is in the .get("/:HERE!") you must make it the same as what in validId("HERE!")
-router.get("/:bugId/comment/:commentId",  isLoggedIn(),   validId("bugId"),    async (req, res) => {
+router.get("/:bugId/comment/:commentId",  isLoggedIn(),  hasPermission("canViewData"),  validId("bugId"),    async (req, res) => {
 
   try {
 
@@ -1324,7 +1332,7 @@ const addNewCommentSchema = Joi.object({
 
 
 
-router.put("/:bugId/comment/new",   isLoggedIn(),   validId("bugId"), validBody(addNewCommentSchema),     async (req,res) => {
+router.put("/:bugId/comment/new",   isLoggedIn(),  hasPermission("canAddComments"),   validId("bugId"), validBody(addNewCommentSchema),     async (req,res) => {
 
 
     //GETS the users input for the bugs id from the url
@@ -1489,7 +1497,7 @@ router.delete("/:bugId/comment/:commentId",     validId("bugId"),    async (req,
 
 
 // ~~~~~~~~~~~~~~~~ FIND ALL TEST CASES IN BUG ~~~~~~~~~~~~~~~~ //    http://localhost:5000/api/bugs/65241671c43c2e5dd553db87/test/list
-router.get("/:bugId/test/list",   isLoggedIn(),   validId("bugId"),   async (req, res) => {
+router.get("/:bugId/test/list",   isLoggedIn(), hasPermission("canViewData"),  validId("bugId"),   async (req, res) => {
   try {
 
     const bugId = req.bugId;
@@ -1529,7 +1537,7 @@ router.get("/:bugId/test/list",   isLoggedIn(),   validId("bugId"),   async (req
 
 //!!!!!!!!!!!!!!!!!!  SEARCHING FOR A TEST CASES IN BUG BY ID !!!!!!!!!!!!!!!!   http://localhost:5000/api/bugs/65241671c43c2e5dd553db87/test/65257171f013f1eed470fbf1
 // What ever is in the .get("/:HERE!") you must make it the same as what in validId("HERE!")
-router.get("/:bugId/test/:testId",   isLoggedIn(),   validId("bugId"),    async (req, res) => {
+router.get("/:bugId/test/:testId",   isLoggedIn(), hasPermission("canViewData"),  validId("bugId"),    async (req, res) => {
 
   try {
 
@@ -1651,7 +1659,7 @@ const addNewTestCaseSchema = Joi.object({
 
 
 
-router.put("/:bugId/test/new",  isLoggedIn(),   validId("bugId"), validBody(addNewTestCaseSchema),     async (req,res) => {   
+router.put("/:bugId/test/new",  isLoggedIn(), hasPermission("canAddTestCase"),  validId("bugId"), validBody(addNewTestCaseSchema),     async (req,res) => {   
 
   
   
@@ -1806,7 +1814,7 @@ const updateTestCasesSchema = Joi.object({
 
 
 
-router.put("/:bugId/test/:testId",   isLoggedIn(),   validId("bugId"), validBody(updateTestCasesSchema),   async (req, res) => {
+router.put("/:bugId/test/:testId",   isLoggedIn(),  hasPermission("canEditTestCase"),  validId("bugId"), validBody(updateTestCasesSchema),   async (req, res) => {
 
 
     // This gets the ID from the users input
@@ -1935,7 +1943,7 @@ router.put("/:bugId/test/:testId",   isLoggedIn(),   validId("bugId"), validBody
 
 // -------------------- DELETING TEST CASE FROM A BUG -------------------   http://localhost:5000/api/bugs/65241671c43c2e5dd553db87/test/652567d8be0078c8eacf6685
 
-router.delete("/:bugId/test/:testId",    isLoggedIn(),    validId("bugId"),    async (req, res) => {
+router.delete("/:bugId/test/:testId",    isLoggedIn(),  hasPermission("canDeleteTestCase"),  validId("bugId"),    async (req, res) => {
 
   try {
 

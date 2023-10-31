@@ -74,6 +74,38 @@ export{
 
 
 
+// rrrrrrrrrrrrrrrrrrrrrrrrrrrrr    ROLE   rrrrrrrrrrrrrrrrrrrrrrrrrrrrr //
+async function findRoleByName(roleName){
+  const db = await connect();
+
+  // Looks into the Role Collection and finds the name of the role and matches it with the users
+  const findRole = await db.collection("Role").findOne({name:roleName})
+
+  return findRole;
+}
+
+
+// ~~~~~~~~~~~~~~~~ FIND ALL ROLES ~~~~~~~~~~~~~~~~ //
+async function getAllRolesSearch(){
+  const dbConnected = await connect();
+
+  const allRoles = await dbConnected.collection("Role").find().toArray();
+
+  return allRoles;
+}
+// ~~~~~~~~~~~~~~~~ FIND ALL ROLES ~~~~~~~~~~~~~~~~ //
+
+export{
+  findRoleByName,
+  getAllRolesSearch
+}
+// rrrrrrrrrrrrrrrrrrrrrrrrrrrrr    ROLE   rrrrrrrrrrrrrrrrrrrrrrrrrrrrr //
+
+
+
+
+
+
 
 
 

@@ -34,6 +34,30 @@ import { isLoggedIn } from "@merlin4/express-auth";
 // ccccc 🍪COOKIES & AUTH TOKEN 🍪 ccccc //
 
 
+
+
+// aaaaaaaaaaaaaaaa AUTHORIZE USERS aaaaaaaaaaaaaaaa//
+// USED FOR AUTHORIZATION this will call in the ability to check a users role and see the permissions they have
+import { fetchRoles} from "@merlin4/express-auth";
+
+
+// This will merge ht user thats logged in roles with the roles in the table and give them the position from their role
+import { mergePermissions } from "@merlin4/express-auth";
+
+
+//This calls in a function from merlin that will send an error if a users Role does not match the permissions we gave that role in the Collection
+import { hasPermission } from "@merlin4/express-auth";
+
+
+// Calls in the ability to look in the Role collection and see if it matches the user thats logged in roles
+import { findRoleByName, getAllRolesSearch } from "../../database.js";
+// aaaaaaaaaaaaaaaa AUTHORIZE USERS aaaaaaaaaaaaaaaa//
+
+
+
+
+
+
 // Imports all the functions from the database.js file to CRUD Users
 import { connect, getAllUsers, getUserById, addNewUser, loginUser, userUpdatesThemselves, updateUser, deleteUser} from "../../database.js";
 
@@ -57,6 +81,14 @@ import { validBody } from "../../middleware/validBody.js";
 
 
 
+
+
+
+
+
+
+
+
 router.use(express.urlencoded({extended:false}));
 
 
@@ -77,6 +109,30 @@ async function issueAuthToken(user){
   // Sets the time in which the token will expire
   const options = {expiresIn: "1h"};
 
+
+    // rrrrrrrr   ROLE/AUTHORIZE    rrrrrrrr //
+      // This will get the logged in user and their role then call our function findRoleByName and plug in that role
+      const roles = await fetchRoles(user, role => findRoleByName(role));
+
+      roles.forEach(role =>{
+         debugUser(`Permissions Info: ${JSON.stringify(role.permissions)}`);
+      });
+
+      // This will merge the roles the user has and the Roles we have in Collection to give them permissions of True
+      const permissions = mergePermissions(user,roles);
+      
+      // Puts the permissions the user has and puts it into the payload to then be passed into the users cookie to signify they have access of true
+      payload.permissions = permissions;
+
+      debugUser(`The users permissions are ${JSON.stringify(permissions)}`);
+
+      /*  To allow users to not gain access to certain functions we have the function hasPermission(""),
+          hasPermission(""), allows us to enter any name in the permissions object in the Role collection
+          some examples of permissions used by all users are: canViewData, canCreateBug, canEditMyBug
+      */
+    // rrrrrrrr    ROLE/AUTHORIZE    rrrrrrrr //
+
+
   // makes the token putting all the variables in
   const authToken = jwt.sign(payload, secret, options);
 
@@ -93,7 +149,6 @@ function issueAuthCookie(res, authToken){
   // Creates the cookie using the cookieOptions and calls in the token from above
   res.cookie("authToken", authToken, cookieOptions);
 }
-
 //🍪 cccccccccccccccccccccccc 🍪 COOKIES & AUTH TOKEN 🍪 cccccccccccccccccccccccc 🍪//
 
 
@@ -105,8 +160,37 @@ function issueAuthCookie(res, authToken){
 
 
 
+
+
+
+// rrrrrrrrrrrrrrrrrrrr FIND ALL ROLES rrrrrrrrrrrrrrrrrrrr http://localhost:5000/api/users/list/roles
+router.get('/list/roles',   isLoggedIn(),       async (req, res) => {
+
+  // Calls in the getBooks() Function finding all books
+  const allRoles = await getAllRolesSearch();
+
+  // Success Message
+  res.status(200).json(allRoles);
+});
+// rrrrrrrrrrrrrrrrrrrr FIND ALL ROLES rrrrrrrrrrrrrrrrrrrr
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // ~~~~~~~~~~~~~~~~ FIND ALL USERS ~~~~~~~~~~~~~~~~ // http://localhost:5000/api/users/list
-router.get("/list",   isLoggedIn(),  async (req, res) => {
+router.get("/list",   isLoggedIn(),    hasPermission("canViewData"),  async (req, res) => {
   try {
     // // Calls in the getAllUsers() Function from database.js finding all the Users
     // const allUsers = await getAllUsers();
@@ -520,7 +604,7 @@ router.put('/me',   isLoggedIn(),   validBody(updateSelfSchema), async (req,res)
 
 // GETTING ANY USER BY THEIR userId
 // What ever is in the .get("/:HERE!") you must make it the same as what in validId("HERE!")
-router.get("/:userId",    isLoggedIn(),   validId("userId"),    async (req, res) => {   // the :userId   makes a param variable that we pass in
+router.get("/:userId",    isLoggedIn(),    hasPermission("canViewData"),    validId("userId"),    async (req, res) => {   // the :userId   makes a param variable that we pass in
   try {
 
 
@@ -540,8 +624,9 @@ router.get("/:userId",    isLoggedIn(),   validId("userId"),    async (req, res)
       res.status(200).json(receivedUserId);
       debugUser(`Success, Got "${receivedUserId.fullName}" Id: ${getUsers}\n`); // Message Appears in terminal
     }
-    else if(!usersId){
-      debugUser(`Invalid Id Entered. Please enter A Valid User Id`);
+    else if(!receivedUserId){
+      res.status(400).json({Id_Error: `User Id ${getUsers} is Invalid. Please enter A Valid User Id`});
+      debugUser(`User Id ${getUsers} is Invalid. Please enter A Valid User Id`);
     }
     else{
       // Error Message
@@ -629,7 +714,7 @@ const registerUserSchema = Joi.object({
           Joi.string()
             .valid(
               'Developer', 'developer',
-              'Business Analysts', 'business analysts',
+              'Business Analyst', 'business analyst',
               'Quality Analyst', 'quality analyst',
               'Product Manager', 'product manager',
               'Technical Manager', 'technical manager'
@@ -643,7 +728,7 @@ const registerUserSchema = Joi.object({
       Joi.string()
         .valid(
           'Developer', 'developer',
-          'Business Analysts', 'business analysts',
+          'Business Analyst', 'business analyst',
           'Quality Analyst', 'quality analyst',
           'Product Manager', 'product manager',
           'Technical Manager', 'technical manager'
@@ -748,7 +833,7 @@ router.post("/register",  validBody(registerUserSchema),   async (req, res) => {
 
 
 
-// /////////////// USER LOGIN WITH EMAIL & PASSWORD ///////////////// http://localhost:5000/api/users/login
+// [][][][][][][][][][] USER LOGIN WITH EMAIL & PASSWORD [][][][][][][][][][] http://localhost:5000/api/users/login
 
 // Step 1 Define the Login User Schema    THESE WILL BE THE RULE SET FOR THE INPUTTED DATA
 const loginUserSchema = Joi.object({
@@ -825,7 +910,7 @@ router.post("/login",   validBody(loginUserSchema),   async (req, res) => {
   }
 
 });
-// /////////////// USER LOGIN WITH EMAIL & PASSWORD /////////////////
+// [][][][][][][][][][] USER LOGIN WITH EMAIL & PASSWORD [][][][][][][][][][]
 
 
 
@@ -931,8 +1016,8 @@ const updateUserSchema = Joi.object({
 
 
 
-
-router.put("/:userId",   isLoggedIn(),  validId("userId"), validBody(updateUserSchema),   async (req, res) => {
+                                  // User has to be a Technical Manager to USE THIS
+router.put("/:userId",   isLoggedIn(),    hasPermission("canEditAnyUser"),    validId("userId"), validBody(updateUserSchema),   async (req, res) => {
 
   // This gets the ID from the users input
   const userId = req.userId;   // We don't need to have .params is due to the validId("id") is using the id from the params in function 
@@ -1038,7 +1123,7 @@ router.put("/:userId",   isLoggedIn(),  validId("userId"), validBody(updateUserS
 
 
 // -------------------- ADMIN DELETING USER FROM DATABASE -------------------
-router.delete("/delete/:userId",   isLoggedIn(),   validId("userId"),   async (req, res) => {
+router.delete("/delete/:userId",   isLoggedIn(),   hasPermission("canEditAnyUser"),    validId("userId"),   async (req, res) => {
 
   // gets the id from the users url
   const usersId = req.userId; // We don't need to have .params is due to the validId("id") is using the id from the params in function 
@@ -1074,8 +1159,8 @@ router.delete("/delete/:userId",   isLoggedIn(),   validId("userId"),   async (r
 
 
         // Success Message
-        res.status(200).json({User_Deleted: `User ${getLoggedInUser.fullName} with a User Id of ${usersId} Deleted`, User_Id: usersId});
-        debugUser(`User ${getLoggedInUser.fullName} with a User Id of ${usersId} Deleted`, usersId); // Message Appears in terminal
+        res.status(200).json({User_Deleted: `User ${getLoggedInUser.fullName} Deleted a with a User Id of ${usersId} Deleted`, User_Id: usersId});
+        debugUser(`User ${getLoggedInUser.fullName} Deleted a with a User Id of ${usersId} Deleted`, usersId); // Message Appears in terminal
       }
       else{
         // Error Message
