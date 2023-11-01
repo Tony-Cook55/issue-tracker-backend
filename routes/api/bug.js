@@ -582,7 +582,7 @@ const updateBugSchema = Joi.object({
 
 
 
-router.put("/:bugId",   isLoggedIn(),  hasPermission("canEditAnyBug, canEditIfAssignedTo, canEditMyBug"),   validId("bugId"), validBody(updateBugSchema),   async (req, res) => {
+router.put("/:bugId",   isLoggedIn(),  hasPermission("canEditAnyBug", "canEditIfAssignedTo", "canEditMyBug"),   validId("bugId"), validBody(updateBugSchema),   async (req, res) => {
 
 
     // This gets the ID from the users input
@@ -597,84 +597,103 @@ router.put("/:bugId",   isLoggedIn(),  hasPermission("canEditAnyBug, canEditIfAs
     const getLoggedInUser = await getUserById(newId(req.auth._id))  // req.auth._id   gets the current cookie logged in user
 
 
+    
+    // Retrieve the original user data from our database using same code from Get Bug by Id
+    const originalBugsData = await getBugById(bugsId);
 
-    try {
 
 
+    // This is looking at the logged in users id and if it matches the id of who created the bug in the bugCreationInformation object they can update
+    if (getLoggedInUser._id.toString() === originalBugsData.bugCreationInformation[0]._id.toString() 
+        || getLoggedInUser.role.includes("Business Analyst") ) // If the user logged in is a Business Analyst they have permission
+    {
 
-                // ------ CHANGES MADE ------ //
-                    // This is an empty array to store the changes the user makes
-                    const changesMadeByUser = [];
+      try {
+                  // ------ CHANGES MADE ------ //
+                      // This is an empty array to store the changes the user makes
+                      const changesMadeByUser = [];
 
-                    // Retrieve the original user data from our database using same code from Get Bug by Id
-                    const originalBugsData = await getBugById(bugsId);
+                      // Retrieve the original user data from our database using same code from Get Bug by Id
+                      //const originalBugsData = await getBugById(bugsId);
 
-                      // Compare the fields user enters to the original fields in getAllUsers()
-                      for (const key in updatedBugFields) {
-                        if (originalBugsData[key] !== updatedBugFields[key]) {
-                          const change = {
-                            field: key,
-                            oldValue: originalBugsData[key],
-                            newValue: updatedBugFields[key]
-                          };
-                          changesMadeByUser.push(change);
+                        // Compare the fields user enters to the original fields in getAllUsers()
+                        for (const key in updatedBugFields) {
+                          if (originalBugsData[key] !== updatedBugFields[key]) {
+                            const change = {
+                              field: key,
+                              oldValue: originalBugsData[key],
+                              newValue: updatedBugFields[key]
+                            };
+                            changesMadeByUser.push(change);
+                          }
                         }
-                      }
 
 
-                    // This is the message i will call down to display both the field changed and the value that was inputted
-                    const changesMadeByUserMessage = changesMadeByUser.length > 0
-                    ? changesMadeByUser.map(change => ` Field ${change.field} was '${change.oldValue}' ~ User ${getLoggedInUser.fullName} Changed ${change.field} to '${change.newValue}' `)
-                    : 'No changes made';
-                // ------ CHANGES MADE ------ //
-
-
-
-      // Calls the function and uses the users entered id and body params for the values to pass into function
-      // we send in the getLoggedInUser information so we can send the users _id into the database
-      const bugUpdated = await updateBug(bugsId, updatedBugFields, getLoggedInUser); 
+                      // This is the message i will call down to display both the field changed and the value that was inputted
+                      const changesMadeByUserMessage = changesMadeByUser.length > 0
+                      ? changesMadeByUser.map(change => ` Field ${change.field} was '${change.oldValue}' ~ User ${getLoggedInUser.fullName} Changed ${change.field} to '${change.newValue}' `)
+                      : 'No changes made';
+                  // ------ CHANGES MADE ------ //
 
 
 
-      // If the Bug is updated once it will gain a property called modifiedCount if this is 1 its true
-      if(bugUpdated.modifiedCount == 1){
+        // Calls the function and uses the users entered id and body params for the values to pass into function
+        // we send in the getLoggedInUser information so we can send the users _id into the database
+        const bugUpdated = await updateBug(bugsId, updatedBugFields, getLoggedInUser); 
 
 
 
+        // If the Bug is updated once it will gain a property called modifiedCount if this is 1 its true
+        if(bugUpdated.modifiedCount == 1){
+
+
+
+              // eeeeeeeeee EDITS MADE eeeeeeeeee //
+                // When the user successfully makes an account in the New Edits collection will show that this was done
+                const editsMade = {
+                  timeStamp: new Date(),
+                  bugUpdatedOn: new Date().toLocaleString('en-US'),
+                  collection: "Bug",
+                  operation: "Bug Updated", 
+                  bugUpdated: bugsId, // Shows bugs id thats updated
+                  bugUpdatedByUser: getLoggedInUser.fullName, // shows the cookie info for the logged in user
+                  fieldsUpdated: changesMadeByUserMessage, // Shows the message of what changed
+                  auth: req.auth // Cookie information
+                }
+
+                // This is the function that pushes the editsMade array into the new Collection named Edits
+                let updatesMade = await saveEdit(editsMade);
             // eeeeeeeeee EDITS MADE eeeeeeeeee //
-              // When the user successfully makes an account in the New Edits collection will show that this was done
-              const editsMade = {
-                timeStamp: new Date(),
-                bugUpdatedOn: new Date().toLocaleString('en-US'),
-                collection: "Bug",
-                operation: "Bug Updated", 
-                bugUpdated: bugsId, // Shows bugs id thats updated
-                bugUpdatedByUser: getLoggedInUser.fullName, // shows the cookie info for the logged in user
-                fieldsUpdated: changesMadeByUserMessage, // Shows the message of what changed
-                auth: req.auth // Cookie information
-              }
-
-              // This is the function that pushes the editsMade array into the new Collection named Edits
-              let updatesMade = await saveEdit(editsMade);
-          // eeeeeeeeee EDITS MADE eeeeeeeeee //
 
 
 
+          // Success Message
+          res.status(200).json({Bug_Updated: `Bug ${bugsId} updated by User ${getLoggedInUser.fullName} with a User Id of ${getLoggedInUser._id}`,
+          Changes_Made_To: changesMadeByUserMessage }); // Success Message
 
-        // Success Message
-        res.status(200).json({Bug_Updated: `Bug ${bugsId} updated by User ${getLoggedInUser.fullName} with a User Id of ${getLoggedInUser._id}`,
-        Changes_Made_To: changesMadeByUserMessage }); // Success Message
-
-        debugBug(`Bug ${bugsId} updated by User ${getLoggedInUser.fullName} with a User Id of ${getLoggedInUser._id}`);
+          debugBug(`Bug ${bugsId} updated by User ${getLoggedInUser.fullName} with a User Id of ${getLoggedInUser._id}`);
+        }
+        else{
+          // Error Message
+          res.status(404).json({Error: `Bug ${bugsId} Not Found`});
+          debugBug(`Bug ${bugsId} Not Found  \n`); // Message Appears in terminal
+        }
       }
-      else{
-        // Error Message
-        res.status(404).json({Error: `Bug ${bugsId} Not Found`});
-        debugBug(`Bug ${bugsId} Not Found  \n`); // Message Appears in terminal
+      catch (err) {
+        res.status(500).json({Error: err.stack});
       }
-    }
-    catch (err) {
-      res.status(500).json({Error: err.stack});
+
+    } 
+    else { // Error if user is not the creator of Bug or a Business Analyst
+      res.status(404).json({
+        Update_Error: `User ${getLoggedInUser.fullName} With a User Id of ${getLoggedInUser._id} Can't Update This Bug`
+        ,
+        Users_Allowed: `Only the Creator of the Bug '${originalBugsData.bugCreationInformation[0].bugCreatedByUser}' with an Id of ${originalBugsData.bugCreationInformation[0]._id} or a Business Analyst can Update Bugs`
+      });
+      
+      debugBug(`User ${getLoggedInUser.fullName} With a User Id of ${getLoggedInUser._id} Can't Update This Bug`, `Only the Creator of the Bug '${originalBugsData.bugCreationInformation[0].bugCreatedByUser}' with an Id of ${originalBugsData.bugCreationInformation[0]._id} or a Business Analyst can Update Bugs`);
+      debugBug("Logged User ID:", getLoggedInUser._id.toString());
+      debugBug("Bug Creator ID:", originalBugsData.bugCreationInformation[0]._id.toString());
     }
 
 });
@@ -686,20 +705,10 @@ router.put("/:bugId",   isLoggedIn(),  hasPermission("canEditAnyBug, canEditIfAs
 
 
 
+
 // ccccccccccccccccc CLASSIFY A BUG ccccccccccccccccc  http://localhost:5000/api/bugs/classify/(ID here)/
 
 // Step 1 Define the Login User Schema    THESE WILL BE THE RULE SET FOR THE INPUTTED DATA
-
-
-
-
-
-
-
-
-
-
-
 const classifyBugSchema = Joi.object({
 
   classification: Joi.string()
@@ -732,7 +741,7 @@ const classifyBugSchema = Joi.object({
 
 
 
-router.put("/:bugId/classify",    isLoggedIn(),  hasPermission("canClassifyAnyBug, canEditIfAssignedTo, canEditMyBug"),  validId("bugId"), validBody(classifyBugSchema),     async (req,res) => {
+router.put("/:bugId/classify",    isLoggedIn(),  hasPermission("canClassifyAnyBug", "canEditIfAssignedTo", "canEditMyBug"),  validId("bugId"), validBody(classifyBugSchema),     async (req,res) => {
 
 // OPTIONS TO CLASSIFY FOR: approved, unapproved, duplicate, by default unclassified
 
@@ -758,86 +767,110 @@ router.put("/:bugId/classify",    isLoggedIn(),  hasPermission("canClassifyAnyBu
     res.status(400).json({Error: `Please Enter A Classification of: Approved, Unapproved, Duplicate, or Unclassified`});
   }
   else{  // ------ SUCCESS ------
-      try {
 
 
-          // If the user is logged in then we will get THAT LOGGED IN USERS INFORMATION
-          const getLoggedInUser = await getUserById(newId(req.auth._id))  // req.auth._id   gets the current cookie logged in user
+    // If the user is logged in then we will get THAT LOGGED IN USERS INFORMATION
+    const getLoggedInUser = await getUserById(newId(req.auth._id))  // req.auth._id   gets the current cookie logged in user
+
+    // Retrieve the original user data from our database using same code from Get Bug by Id
+    const originalBugsData = await getBugById(bugsId);
 
 
-                // ------ CHANGES MADE ------ //
-                    // This is an empty array to store the changes the user makes
-                    const changesMadeByUser = [];
+    // This is looking at the logged in users id and if it matches the id of who created the bug in the bugCreationInformation object they can update
+    if (getLoggedInUser._id.toString() === originalBugsData.bugCreationInformation[0]._id.toString() 
+        || getLoggedInUser.role.includes("Business Analyst") ) // If the user logged in is a Business Analyst they have permission
+    {
 
-                    // Retrieve the original user data from our database using same code from Get Bug by Id
-                    const originalBugsData = await getBugById(bugsId);
 
-                      // Compare the fields user enters to the original fields in getAllUsers()
-                      for (const key in classifyBugFields) {
-                        if (originalBugsData[key] !== classifyBugFields[key]) {
-                          const change = {
-                            field: key,
-                            oldValue: originalBugsData[key],
-                            newValue: classifyBugFields[key]
-                          };
-                          changesMadeByUser.push(change);
+        try {
+
+                  // ------ CHANGES MADE ------ //
+                      // This is an empty array to store the changes the user makes
+                      const changesMadeByUser = [];
+
+                      // // Retrieve the original user data from our database using same code from Get Bug by Id
+                      // const originalBugsData = await getBugById(bugsId);
+
+                        // Compare the fields user enters to the original fields in getAllUsers()
+                        for (const key in classifyBugFields) {
+                          if (originalBugsData[key] !== classifyBugFields[key]) {
+                            const change = {
+                              field: key,
+                              oldValue: originalBugsData[key],
+                              newValue: classifyBugFields[key]
+                            };
+                            changesMadeByUser.push(change);
+                          }
                         }
-                      }
 
 
-                    // This is the message i will call down to display both the field changed and the value that was inputted
-                    const changesMadeByUserMessage = changesMadeByUser.length > 0
-                    ? changesMadeByUser.map(change => ` Field ${change.field} was '${change.oldValue}' ~ User ${getLoggedInUser.fullName} Changed ${change.field} to '${change.newValue}' `)
-                    : 'No changes made';
-                // ------ CHANGES MADE ------ //
-
-
+                      // This is the message i will call down to display both the field changed and the value that was inputted
+                      const changesMadeByUserMessage = changesMadeByUser.length > 0
+                      ? changesMadeByUser.map(change => ` Field ${change.field} was '${change.oldValue}' ~ User ${getLoggedInUser.fullName} Changed ${change.field} to '${change.newValue}' `)
+                      : 'No changes made';
+                  // ------ CHANGES MADE ------ //
 
 
 
-        // Calls the function and uses the users entered id and body params for the values to pass into function
-              // we send in the getLoggedInUser information so we can send the users _id into the database
-        const bugClassified = await updateClassification(bugsId, classifyBugFields, getLoggedInUser);
+
+
+          // Calls the function and uses the users entered id and body params for the values to pass into function
+                // we send in the getLoggedInUser information so we can send the users _id into the database
+          const bugClassified = await updateClassification(bugsId, classifyBugFields, getLoggedInUser);
 
 
 
-        // If the Bugs Classification is updated once. It will gain a property called modifiedCount if this is 1 its true
-        if(bugClassified.modifiedCount == 1){
+          // If the Bugs Classification is updated once. It will gain a property called modifiedCount if this is 1 its true
+          if(bugClassified.modifiedCount == 1){
 
 
-            // eeeeeeeeee EDITS MADE eeeeeeeeee //
-              // When the user successfully makes an account in the New Edits collection will show that this was done
-              const editsMade = {
-                timeStamp: new Date(),
-                bugClassifiedOn: new Date().toLocaleString('en-US'),
-                collection: "Bug",
-                operation: "Bug Classified", 
-                bugClassified: bugsId, // Shows bugs id thats classified
-                bugClassifiedByUser: getLoggedInUser.fullName, // shows the cookie info for the logged in user
-                fieldsUpdated: changesMadeByUserMessage, // Shows the message of what changed
-                auth: req.auth // Cookie information
-              }
+              // eeeeeeeeee EDITS MADE eeeeeeeeee //
+                // When the user successfully makes an account in the New Edits collection will show that this was done
+                const editsMade = {
+                  timeStamp: new Date(),
+                  bugClassifiedOn: new Date().toLocaleString('en-US'),
+                  collection: "Bug",
+                  operation: "Bug Classified", 
+                  bugClassified: bugsId, // Shows bugs id thats classified
+                  bugClassifiedByUser: getLoggedInUser.fullName, // shows the cookie info for the logged in user
+                  fieldsUpdated: changesMadeByUserMessage, // Shows the message of what changed
+                  auth: req.auth // Cookie information
+                }
 
-              // This is the function that pushes the editsMade array into the new Collection named Edits
-              let updatesMade = await saveEdit(editsMade);
-            // eeeeeeeeee EDITS MADE eeeeeeeeee //
+                // This is the function that pushes the editsMade array into the new Collection named Edits
+                let updatesMade = await saveEdit(editsMade);
+              // eeeeeeeeee EDITS MADE eeeeeeeeee //
 
 
-          // Success Messages
-          res.status(200).json({Bug_Classified: `Bug ${bugsId} Classified With a Classification of '${classifyBugFields.classification}' by User ${getLoggedInUser.fullName} With a User Id of ${getLoggedInUser._id}`,
-            Changes_Made_To: changesMadeByUserMessage});
-          debugBug(`Bug ${bugsId} Classified With a Classification of ${classifyBugFields.classification}`);
+            // Success Messages
+            res.status(200).json({Bug_Classified: `Bug ${bugsId} Classified With a Classification of '${classifyBugFields.classification}' by User ${getLoggedInUser.fullName} With a User Id of ${getLoggedInUser._id}`,
+              Changes_Made_To: changesMadeByUserMessage});
+            debugBug(`Bug ${bugsId} Classified With a Classification of ${classifyBugFields.classification}`);
+          }
+          else{
+            // Error Message
+            res.status(404).json({Error: `Bug ${bugsId} Not Found`});
+            debugBug(`Bug ${bugsId} Not Found \n`); // Message Appears in terminal
+          }
         }
-        else{
-          // Error Message
-          res.status(404).json({Error: `Bug ${bugsId} Not Found`});
-          debugBug(`Bug ${bugsId} Not Found \n`); // Message Appears in terminal
+        catch (err) {
+          res.status(500).json({Error: err.stack});
         }
-      }
-      catch (err) {
-        res.status(500).json({Error: err.stack});
-      }
+
+    }// Error if user is not the creator of Bug or a Business Analyst
+    else {
+      res.status(404).json({
+        Assign_Error: `User ${getLoggedInUser.fullName} With a User Id of ${getLoggedInUser._id} Can't Classify This Bug`
+        ,
+        Users_Allowed: `Only the Creator of the Bug '${originalBugsData.bugCreationInformation[0].bugCreatedByUser}' with an Id of ${originalBugsData.bugCreationInformation[0]._id} or a Business Analyst can Classify Bugs`
+      });
+
+      debugBug(`User ${getLoggedInUser.fullName} With a User Id of ${getLoggedInUser._id} Can't Classify This Bug`, `Only the Creator of the Bug '${originalBugsData.bugCreationInformation[0].bugCreatedByUser}' with an Id of ${originalBugsData.bugCreationInformation[0]._id} or a Business Analyst can Classify Bugs`);
+      debugBug("Logged User ID:", getLoggedInUser._id.toString());
+      debugBug("Bug Creator ID:", originalBugsData.bugCreationInformation[0]._id.toString());
     }
+
+  }// End of main else statement
 });
 // ccccccccccccccccc CLASSIFY A BUG ccccccccccccccccc
 
@@ -866,7 +899,7 @@ const assignBugSchema = Joi.object({
 
 
 
-router.put("/:bugId/assign",  hasPermission("canReassignAnyBug, canReassignIfAssignedTo, canEditMyBug"),  isLoggedIn(),   validId("bugId"), validBody(assignBugSchema),    async (req,res) => {
+router.put("/:bugId/assign",  hasPermission("canReassignAnyBug", "canReassignIfAssignedTo", "canEditMyBug"),  isLoggedIn(),   validId("bugId"), validBody(assignBugSchema),    async (req,res) => {
 
   //GETS the users input for the bugs id from the url
   const bugsId = req.bugId;
@@ -891,16 +924,23 @@ router.put("/:bugId/assign",  hasPermission("canReassignAnyBug, canReassignIfAss
 
 
 
-                // If the user is logged in then we will get THAT LOGGED IN USERS INFORMATION
-                const getLoggedInUser = await getUserById(newId(req.auth._id))  // req.auth._id   gets the current cookie logged in user
+      // If the user is logged in then we will get THAT LOGGED IN USERS INFORMATION
+      const getLoggedInUser = await getUserById(newId(req.auth._id));  // req.auth._id   gets the current cookie logged in user
 
+      const originalBugsData = await getBugById(bugsId);
+
+
+    // This is looking at the logged in users id and if it matches the id of who created the bug in the bugCreationInformation object they can update
+    if (getLoggedInUser._id.toString() === originalBugsData.bugCreationInformation[0]._id.toString() 
+    || getLoggedInUser.role.includes("Business Analyst") || getLoggedInUser.role.includes("Technical Manager") ) // If the user logged in is a Business Analyst or a Technical Manager they have permission
+    {
 
                 // ------ CHANGES MADE ------ //
                     // This is an empty array to store the changes the user makes
                     const changesMadeByUser = [];
 
                     // Retrieve the original user data from our database using same code from Get Bug by Id
-                    const originalBugsData = await getBugById(bugsId);
+                    //const originalBugsData = await getBugById(bugsId);
 
                       // Compare the fields user enters to the original fields in getAllUsers()
                       for (const key in assignBugFields) {
@@ -976,7 +1016,24 @@ router.put("/:bugId/assign",  hasPermission("canReassignAnyBug, canReassignIfAss
         res.status(404).json({Id_Error: `User Id ${assignBugFields.assignedToUserId} Not Found`});
         debugBug(`User Id ${assignBugFields.assignedToUserId} Not Found`);
       }
+
+    }// Error if user is not the creator of Bug or a Business Analyst
+    else {
+      res.status(404).json({
+        Assign_Error: `User ${getLoggedInUser.fullName} With a User Id of ${getLoggedInUser._id} Can't Assign This Bug`
+        ,
+        Users_Allowed: `Only the Creator of the Bug '${originalBugsData.bugCreationInformation[0].bugCreatedByUser}' with an Id of ${originalBugsData.bugCreationInformation[0]._id}, a Business Analyst, or a Technical Manager can Assign Bugs`
+      });
+
+      debugBug(`User ${getLoggedInUser.fullName} With a User Id of ${getLoggedInUser._id} Can't Assign This Bug`, `Only the Creator of the Bug '${originalBugsData.bugCreationInformation[0].bugCreatedByUser}' with an Id of ${originalBugsData.bugCreationInformation[0]._id}, a Business Analyst, or a Technical Manager can Assign Bugs`);
+      debugBug("Logged User ID:", getLoggedInUser._id.toString());
+      debugBug("Bug Creator ID:", originalBugsData.bugCreationInformation[0]._id.toString());
+    }
+
+
+
   } // end of main else statement
+
 
 });
 // aaaaaaaaaaaaaaaaaa ASSIGN A BUG aaaaaaaaaaaaaaaaaa
@@ -1953,19 +2010,22 @@ router.delete("/:bugId/test/:testId",    isLoggedIn(),  hasPermission("canDelete
   // Reads just the id of the comment entered
   const testCasesId = req.params.testId;
 
+  debugBug(`bugsId: ${bugsId}`);
+  debugBug(`TestCaseId: ${testCasesId}`);
+
 
   // Uses the Bug and Comments Id and plugs it into the deleteComment function
     const testCaseIsDeleted = await deleteTestCase(bugsId, testCasesId);
 
     // If the comment is deleted then success
-    if(testCaseIsDeleted){
+    if(testCaseIsDeleted.modifiedCount == 1){
       // Success Message
       res.status(200).json({TestCase_Deleted: `Test Case ${testCasesId} Has Been Deleted`});
       debugBug(`Test Case ${testCasesId} Has Been Deleted`); // Message Appears in terminal
     }
     else{
       // Error Message
-      res.status(404).json({Error: `Bug Id ${bugsId} Not Found`});
+      res.status(404).json({Error: `Bug Id ${bugsId} or Test Case Id ${testCasesId} Not Found`});
       debugBug(`Bug ${bugsId} Not Found\n`); // Message Appears in terminal
     }
   }

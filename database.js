@@ -35,12 +35,12 @@ async function connect(){
 
 
 
-/** Connect to the database and verify the connection */
-async function ping() {
-  const db = await connect();
-  await db.command({ ping: 1 });
-  debugDatabase("Pinged your deployment. You successfully connected to MongoDB!\n");
-}
+// /** Connect to the database and verify the connection */
+// async function ping() {
+//   const db = await connect();
+//   await db.command({ ping: 1 });
+//   debugDatabase("Pinged your deployment. You successfully connected to MongoDB!\n");
+// }
 
 
 
@@ -1115,9 +1115,7 @@ async function deleteTestCase(bugsId, testCasesId){
   );
 
 
-    return deleteTestCaseFromBug.modifiedCount > 0;
-
-
+    return deleteTestCaseFromBug;
 }
 // ------------------ DELETE TEST CASE BY ID ------------------ //
 
@@ -1236,8 +1234,8 @@ export {
 export {
   newId,
   connect,
-  ping
+  //ping
 };
 
 // test the database connection
-ping();
+//ping();

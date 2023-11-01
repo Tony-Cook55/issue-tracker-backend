@@ -114,9 +114,13 @@ async function issueAuthToken(user){
       // This will get the logged in user and their role then call our function findRoleByName and plug in that role
       const roles = await fetchRoles(user, role => findRoleByName(role));
 
+
+
       roles.forEach(role =>{
-         debugUser(`Permissions Info: ${JSON.stringify(role.permissions)}`);
+        debugUser(`Permissions Info: Role: ${JSON.stringify(role)}  `); //${JSON.stringify(role.permissions)}
       });
+
+
 
       // This will merge the roles the user has and the Roles we have in Collection to give them permissions of True
       const permissions = mergePermissions(user,roles);
@@ -981,7 +985,7 @@ const updateUserSchema = Joi.object({
           Joi.string()
             .valid(
               'Developer', 'developer',
-              'Business Analysts', 'business analysts',
+              'Business Analyst', 'business analyst',
               'Quality Analyst', 'quality analyst',
               'Product Manager', 'product manager',
               'Technical Manager', 'technical manager'
@@ -994,7 +998,7 @@ const updateUserSchema = Joi.object({
       Joi.string()
         .valid(
           'Developer', 'developer',
-          'Business Analysts', 'business analysts',
+          'Business Analyst', 'business analyst',
           'Quality Analyst', 'quality analyst',
           'Product Manager', 'product manager',
           'Technical Manager', 'technical manager'
