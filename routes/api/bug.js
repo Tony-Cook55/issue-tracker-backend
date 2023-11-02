@@ -268,8 +268,8 @@ router.get("/list",   isLoggedIn(), hasPermission("canViewData"),  async (req, r
 
     let {pageSize, pageNumber} = req.query;
 
-      // Makes users input into an int or just default to 5 pages shown
-      pageSize = parseInt(pageSize) || 5;
+      // Makes users input into an int or just default to 10 pages shown
+      pageSize = parseInt(pageSize) || 10;
       // Make the users input into an int or just go to page 1 by default
       pageNumber = parseInt(pageNumber) || 1;
 

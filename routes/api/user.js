@@ -292,7 +292,7 @@ router.get("/list",   isLoggedIn(),    hasPermission("canViewData"),  async (req
   /* sssssssssssssssssss SORTING sssssssssssssssssss */
 
       // By Default we will sort in ascending order of all of these below
-      let sort = {createdOn: -1, givenName: 1, };  // The 1 is ascending  ~  -1 is descending order
+      let sort = {createdOn: -1, givenName: 1,};  // The 1 is ascending  ~  -1 is descending order
 
       // Gets the users input in the sortBy field
       let {sortBy} = req.query;
@@ -325,8 +325,8 @@ router.get("/list",   isLoggedIn(),    hasPermission("canViewData"),  async (req
 
     let {pageSize, pageNumber} = req.query;
 
-      // Makes users input into an int or just have 5 pages shown
-      pageSize = parseInt(pageSize) || 5;
+      // Makes users input into an int or just have 10 pages shown
+      pageSize = parseInt(pageSize) || 10;
       // Make the users input into an int or just go to page 1
       pageNumber = parseInt(pageNumber) || 1;
 
@@ -574,13 +574,13 @@ router.put('/me',   isLoggedIn(),   validBody(updateSelfSchema), async (req,res)
 
 
         // SUCCESS MESSAGE
-        res.status(200).json({Update_Successful: `Hello ${updatedUserFields.fullName}! You Have Successfully Updated Yourself. Your User Id is ${newId(req.auth._id)}`,
+        res.status(200).json({Update_Successful: `Hello ${getLoggedInUser.fullName}! You Have Successfully Updated Yourself. Your User Id is ${newId(req.auth._id)}`,
         // In the success message will show an array of what has been changed this is the message below
         Changes_Made_To: changesMadeMessage }); 
         return;
       }
       else{ // ERROR
-        res.status(400).json({Update_Error: `Hello ${updatedUserFields.fullName}! Sadly We Weren't able to Update You. Your User Id is ${newId(req.auth._id)}`});
+        res.status(400).json({Update_Error: `Hello ${getLoggedInUser.fullName}! Sadly We Weren't able to Update You. Your User Id is ${newId(req.auth._id)}`});
         return;
       }
 
@@ -712,33 +712,34 @@ const registerUserSchema = Joi.object({
 
 
     // Allows a user to enter a single item or an array of items
-    role: Joi.alternatives().try(
-      Joi.array()
-        .items(
-          Joi.string()
-            .valid(
-              'Developer', 'developer',
-              'Business Analyst', 'business analyst',
-              'Quality Analyst', 'quality analyst',
-              'Product Manager', 'product manager',
-              'Technical Manager', 'technical manager'
-            )
-            .min(1)
-            .max(5)
-        )
-        .min(1)
-        .max(5)
-        .required(),
-      Joi.string()
-        .valid(
-          'Developer', 'developer',
-          'Business Analyst', 'business analyst',
-          'Quality Analyst', 'quality analyst',
-          'Product Manager', 'product manager',
-          'Technical Manager', 'technical manager'
-        )
-        .required()
-    ).required()
+
+    // role: Joi.alternatives().try(
+    //   Joi.array()
+    //     .items(
+    //       Joi.string()
+    //         .valid(
+    //           'Developer', 'developer',
+    //           'Business Analyst', 'business analyst',
+    //           'Quality Analyst', 'quality analyst',
+    //           'Product Manager', 'product manager',
+    //           'Technical Manager', 'technical manager'
+    //         )
+    //         .min(1)
+    //         .max(5)
+    //     )
+    //     .min(1)
+    //     .max(5)
+    //     .required(),
+    //   Joi.string()
+    //     .valid(
+    //       'Developer', 'developer',
+    //       'Business Analyst', 'business analyst',
+    //       'Quality Analyst', 'quality analyst',
+    //       'Product Manager', 'product manager',
+    //       'Technical Manager', 'technical manager'
+    //     )
+    //     .required()
+    // ).required()
 
   
 
@@ -755,6 +756,10 @@ router.post("/register",  validBody(registerUserSchema),   async (req, res) => {
 
   // Getting the users data from the body like a form
   const newUser = req.body;
+
+
+  // Add the default "Developer" role to the user
+  newUser.role = ["Developer"]; // I Got rid of the .required on role in schema
 
 
   //Call in our connect to database and then we find the email in the database then the users input
@@ -1101,7 +1106,7 @@ router.put("/:userId",   isLoggedIn(),    hasPermission("canEditAnyUser"),    va
 
 
       // Success Message
-      res.status(200).json({ User_Updated: `User ${showUsersNewInfo.fullName} with a User Id of ${userId} Updated`,
+      res.status(200).json({User_Updated: `User ${showUsersNewInfo.fullName} with a User Id of ${userId} Updated`,
       // THIS is apart of the success message and it looks to see the length of the array of changes. IF array is 0? say message  'No changes made'
       Changes_Made_To: changesMadeByAdminMessage }); // Success Message
       debugUser(`User ${showUsersNewInfo.fullName} with a User Id of ${userId} Updated`, changesMadeByAdminMessage );
@@ -1126,7 +1131,7 @@ router.put("/:userId",   isLoggedIn(),    hasPermission("canEditAnyUser"),    va
 
 
 
-// -------------------- ADMIN DELETING USER FROM DATABASE -------------------
+// -------------------- Technical Manager DELETING USER FROM DATABASE -------------------
 router.delete("/delete/:userId",   isLoggedIn(),   hasPermission("canEditAnyUser"),    validId("userId"),   async (req, res) => {
 
   // gets the id from the users url
@@ -1163,13 +1168,13 @@ router.delete("/delete/:userId",   isLoggedIn(),   hasPermission("canEditAnyUser
 
 
         // Success Message
-        res.status(200).json({User_Deleted: `User ${getLoggedInUser.fullName} Deleted a with a User Id of ${usersId} Deleted`, User_Id: usersId});
-        debugUser(`User ${getLoggedInUser.fullName} Deleted a with a User Id of ${usersId} Deleted`, usersId); // Message Appears in terminal
+        res.status(200).json({User_Deleted: `User '${getLoggedInUser.fullName}' Deleted User ${usersId}`, Deleted_Users_Id: usersId});
+        debugUser(`User '${getLoggedInUser.fullName}' Deleted User ${usersId}`, `Deleted Users Id: ${usersId}`);
       }
       else{
         // Error Message
         res.status(404).json({Id_Error: `User ${usersId} Not Found`});
-        debugUser(`User ${usersId} Not Found\n`); // Message Appears in terminal
+        debugUser(`User ${usersId} Not Found\n`);
       }
   }
   catch (err) {
@@ -1177,7 +1182,7 @@ router.delete("/delete/:userId",   isLoggedIn(),   hasPermission("canEditAnyUser
   }
 
 });
-// -------------------- ADMIN DELETING USER FROM DATABASE -------------------
+// -------------------- Technical Manager DELETING USER FROM DATABASE -------------------
 
 
 
