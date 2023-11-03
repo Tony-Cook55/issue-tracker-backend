@@ -59,7 +59,7 @@ import { findRoleByName, getAllRolesSearch } from "../../database.js";
 
 
 // Imports all the functions from the database.js file to CRUD Users
-import { connect, getAllUsers, getUserById, addNewUser, loginUser, userUpdatesThemselves, updateUser, deleteUser} from "../../database.js";
+import { connect, getAllUsers, userUpdatesThemselves, getUserById, addNewUser, loginUser, updateUser, deleteUser} from "../../database.js";
 
 
 // THIS IMPORTS THE function to delete the stupid edits by Id from the Edits Collection
@@ -406,7 +406,8 @@ router.get("/me",    isLoggedIn(),     async (req, res) => {   // the :userId   
       res.status(200).json(getLoggedInUser);
       debugUser(`Success, Got "${getLoggedInUser.fullName}" Id: ${getLoggedInUser._id}\n`); // Message Appears in terminal
     }
-    else if(!usersId){
+    else if(!getLoggedInUser){
+      res.status(400).json(`Could Not Retrieve Your Account At This Time.`);
       debugUser(`Could Not Retrieve Your Account At This Time.`);
     }
     else{
@@ -951,7 +952,7 @@ const updateUserSchema = Joi.object({
 
   email: Joi.string()
   .trim()
-  .email({minDomainSegments: 2, tlds: { allow: ['com', 'net'] } })
+  .email({minDomainSegments: 2, tlds: { allow: ['com', 'net', 'edu'] } })
   .messages({
     'string.empty': 'Email is required', // if email is left empty
     'string.email': 'Email must be a valid email address', // if email does not contain an @HERE.com

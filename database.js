@@ -132,6 +132,32 @@ async function getAllUsers(){
 
 
 
+
+
+// uuuuuuuuuuuuuuuuu USER UPDATES THEMSELVES IF LOGGED IN uuuuuuuuuuuuuuuuu //
+async function userUpdatesThemselves(getUser){
+
+  const dbConnected = await connect();
+
+
+    // This date is for searching purposes
+    getUser.lastUpdated = new Date();
+
+    // Here we create a new item in the Database called lastUpdated and we set the time it was made at for its value
+    getUser.userLastUpdated = new Date().toLocaleString('en-US');
+
+
+  // gets the inputted id and the input for all the fields due to the:  ... gets all the values from the fields
+  const userUpdated = await dbConnected.collection("User").updateOne({_id: getUser._id},{$set:{...getUser}});
+
+  return userUpdated;
+}
+// uuuuuuuuuuuuuuuuu USER UPDATES THEMSELVES IF LOGGED IN uuuuuuuuuuuuuuuuu //
+
+
+
+
+
 // !!!!!!!!!!!!!!! SEARCHING FOR A USER BY ID !!!!!!!!!!!!!!! //
 async function getUserById(usersId){
   const dbConnected = await connect();
@@ -211,27 +237,6 @@ async function loginUser(userLogin){
 
 
 
-// uuuuuuuuuuuuuuuuu USER UPDATES THEMSELVES IF LOGGED IN uuuuuuuuuuuuuuuuu //
-async function userUpdatesThemselves(getUser){
-
-  const dbConnected = await connect();
-
-
-    // This date is for searching purposes
-    getUser.lastUpdated = new Date();
-
-    // Here we create a new item in the Database called lastUpdated and we set the time it was made at for its value
-    getUser.userLastUpdated = new Date().toLocaleString('en-US');
-
-
-  // gets the inputted id and the input for all the fields due to the:  ... gets all the values from the fields
-  const userUpdated = await dbConnected.collection("User").updateOne({_id: getUser._id},{$set:{...getUser}});
-
-  return userUpdated;
-}
-// uuuuuuuuuuuuuuuuu USER UPDATES THEMSELVES IF LOGGED IN uuuuuuuuuuuuuuuuu //
-
-
 
 
 
@@ -277,10 +282,10 @@ async function deleteUser(usersId){
   // ******** USERS EXPORTS ******** //
 export{
   getAllUsers,
+  userUpdatesThemselves,
   getUserById,
   addNewUser,
   loginUser,
-  userUpdatesThemselves,
   updateUser,
   deleteUser
 };
