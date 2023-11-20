@@ -14,7 +14,7 @@ const validId = (parameterName) => {
 
       return next();
     } catch (err) {
-      return res.status(400).json({Error: `${parameterName} Does Not Contain a Valid Id`});
+      return res.status(400).json({error: `${parameterName} Does Not Contain a Valid Id`});
 
     }
   }

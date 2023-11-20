@@ -1,3 +1,6 @@
+//  To Run Program: npm run dev   
+
+
 
 // I I I I I I I    IMPORTS   I I I I I I I
 import express from "express";
@@ -885,7 +888,7 @@ router.post("/login",   validBody(loginUserSchema),   async (req, res) => {
         //This targets if the email is NOT correct if it is LOG USER IN
         if (!usersLoggedIn) {
           // Handle the case where the user is not found in the database
-          res.status(400).json({ Invalid_Email: 'User Not Found. Please Enter a Valid Email.' });
+          res.status(400).json('User Not Found. Please Enter a Valid Email.');
           debugUser('User not found. Please provide a valid email.'); // Message Appears in terminal
         }
         else{
@@ -905,22 +908,38 @@ router.post("/login",   validBody(loginUserSchema),   async (req, res) => {
 
 
               // Success Message
-              res.status(200).json({Welcome_Back: `Welcome ${usersLoggedIn.fullName} You Are Successfully Logged In.`, Your_Auth_Token_Is: `${authToken}`});
+              res.status(200).json({Welcome_Back: `Welcome ${usersLoggedIn.fullName} You Are Successfully Logged In.`, Your_Auth_Token_Is: `${authToken}`,
+                // fullname ADDED THIS TO THE MESSAGE TO ALLOW US TO CALL IT IN ON LOG IN TO SAVE IN NAVBAR
+                fullName: usersLoggedIn.fullName});
               debugUser(`Welcome ${usersLoggedIn.fullName} You Are Successfully Logged In. Your Auth Token is ${authToken}`); // Message Appears in terminal
             }
             else{ // xxxxxx ERROR xxxxxxx
               //Error For passwords
-              res.status(400).json({ Invalid_Password: 'User Not Found. Please Enter a Valid Password.' });
+              res.status(400).json('User Not Found. Please Enter a Valid Password.');
               debugUser(`User ${usersLoggedIn.fullName} Not Found`); // Message Appears in terminal
             }
         }
       }
   catch (err) {
-    res.status(500).json({Error: err.stack});
+    res.status(500).json({error: err.stack});
   }
 
 });
 // [][][][][][][][][][] USER LOGIN WITH EMAIL & PASSWORD [][][][][][][][][][]
+
+
+
+
+
+
+
+// LOLOLOLOLOLOLOLOL  USER LOGS OUT  LOLOLOLOLOLOLOLOL //
+router.post("/logout", isLoggedIn(), async (req,res) => {
+  res.clearCookie("authToken");
+  res.status(200).json({message: "You Have Been Logged Out"});
+});
+// LOLOLOLOLOLOLOLOL  USER LOGS OUT  LOLOLOLOLOLOLOLOL //
+
 
 
 

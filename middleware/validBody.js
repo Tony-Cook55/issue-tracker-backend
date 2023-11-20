@@ -8,7 +8,7 @@ const validBody = (schema) => {
 
     // If there is an error send the error back to user
     if(validationResult.error){
-      return res.status(400).json({Error: validationResult.error});
+      return res.status(400).json({error: validationResult.error});
     }
     else{
       // This is the object the user inputs and keeps the body to the good data added
