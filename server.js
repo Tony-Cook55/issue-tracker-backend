@@ -124,7 +124,7 @@ app.use(authMiddleware(process.env.AUTH_SECRET, 'authToken',
 // asdasd THIS IS NEEDED TO ALLOW FRONT END ACCESS TO THE BACKEND asdasd //
 app.use(cors(
   {
-  origin: "http://localhost:5174",
+  origin: "http://localhost:5173",
   credentials: true
   }
 )); // cors is making sure the front end domain and the backend domain are compatible

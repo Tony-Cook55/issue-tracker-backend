@@ -388,9 +388,12 @@ const addNewBugSchema = Joi.object({
     title: Joi.string()
     .trim()
     .required()
+    .max(40) // Set the maximum character limit
+    .regex(/^(?![A-Z]+$)/) // Ensure not all uppercase
     .messages({
       'string.empty': 'Title is required',
       'any.required': 'Title is required',
+      'string.pattern.base': 'Title cannot be all uppercase',
     }),
 
 
@@ -548,9 +551,12 @@ const updateBugSchema = Joi.object({
 
   title: Joi.string()
   .trim()
+  .max(40) // Set the maximum character limit
+  .regex(/^(?![A-Z]+$)/) // Ensure not all uppercase
   .messages({
     'string.empty': 'Title is required',
     'any.required': 'Title is required',
+    'string.pattern.base': 'Title cannot be all uppercase',
   }),
 
 
