@@ -910,7 +910,10 @@ router.post("/login",   validBody(loginUserSchema),   async (req, res) => {
               // Success Message
               res.status(200).json({Welcome_Back: `Welcome ${usersLoggedIn.fullName} You Are Successfully Logged In.`, Your_Auth_Token_Is: `${authToken}`,
                 // fullname ADDED THIS TO THE MESSAGE TO ALLOW US TO CALL IT IN ON LOG IN TO SAVE IN NAVBAR
-                fullName: usersLoggedIn.fullName});
+                fullName: usersLoggedIn.fullName,
+                // rolesa This sends the roles in the message to be called in to check the users permissions
+                roles: `${usersLoggedIn.fullName} Has The Roles of ${usersLoggedIn.role}`
+              });
               debugUser(`Welcome ${usersLoggedIn.fullName} You Are Successfully Logged In. Your Auth Token is ${authToken}`); // Message Appears in terminal
             }
             else{ // xxxxxx ERROR xxxxxxx

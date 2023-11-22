@@ -356,7 +356,7 @@ router.get("/:bugId",   isLoggedIn(),   hasPermission("canViewData"),   validId(
     if(receivedBugId){
       // Success Message
       res.status(200).json(receivedBugId);
-      debugBug(`Success, Got "${receivedBugId.title}" Id: ${bugsId} \n`); // Message Appears in terminal
+      //debugBug(`Success, Got "${receivedBugId.title}" Id: ${bugsId} \n`); // Message Appears in terminal
     }
     else{
       // Error Message
