@@ -588,7 +588,7 @@ const updateBugSchema = Joi.object({
 
 
 
-router.put("/:bugId",   isLoggedIn(),  hasPermission("canEditAnyBug", "canEditIfAssignedTo", "canEditMyBug"),   validId("bugId"), validBody(updateBugSchema),   async (req, res) => {
+router.put("/update/:bugId",   isLoggedIn(),  hasPermission("canEditAnyBug", "canEditIfAssignedTo", "canEditMyBug"),   validId("bugId"), validBody(updateBugSchema),   async (req, res) => {
 
 
     // This gets the ID from the users input
@@ -598,9 +598,8 @@ router.put("/:bugId",   isLoggedIn(),  hasPermission("canEditAnyBug", "canEditIf
     const updatedBugFields = req.body;  // An .body is an object in updatedBug lets our body read the users id
     // .body holds all the information/fields the user enters
 
-
     // If the user is logged in then we will get THAT LOGGED IN USERS INFORMATION
-    const getLoggedInUser = await getUserById(newId(req.auth._id))  // req.auth._id   gets the current cookie logged in user
+    const getLoggedInUser = await getUserById(newId(req.auth._id));  // req.auth._id   gets the current cookie logged in user
 
 
     
