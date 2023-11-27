@@ -570,8 +570,8 @@ const updateBugSchema = Joi.object({
 
 
   stepsToReproduce: Joi.alternatives().try(
-    Joi.array().items(Joi.string().min(1).max(100)).min(1).max(100),
-    Joi.string().min(1).max(100)
+    Joi.array().items(Joi.string().min(1).max(100)).min(1).max(50),
+    Joi.string().min(1).max(50)
   ).messages({
     'array.base': 'Steps To Reproduce must be an array or a single step',
     'array.min': 'At least one step must be provided in the array',
