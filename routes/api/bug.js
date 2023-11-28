@@ -325,7 +325,6 @@ router.get("/list",   isLoggedIn(), hasPermission("canViewData"),  async (req, r
   // =============== OUTPUT =============== //
 
 
-
     debugBug("Success! Found All Bugs"); // Message Appears in terminal
     debugBug(`The Query string is ${JSON.stringify(req.query)}`); // Shows the query.params being used
   }

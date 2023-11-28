@@ -691,27 +691,33 @@ const registerUserSchema = Joi.object({
   fullName: Joi.string()
     .trim()
     .required()
+    .max(34)
     .messages({
       'string.empty': 'Full name is required',
       'any.required': 'Full name is required',
+      'string.max': 'Full Name must be at most {#limit} characters long', // if more than 14 characters
     }),
 
 
     givenName: Joi.string()
     .trim()
     .required()
+    .max(14)
     .messages({
       'string.empty': 'Given name is required',
       'any.required': 'Given name is required',
+      'string.max': 'Given Name must be at most {#limit} characters long', // if more than 14 characters
     }),
 
 
     familyName: Joi.string()
     .trim()
     .required()
+    .max(14)
     .messages({
       'string.empty': 'Family name is required',
       'any.required': 'Family name is required',
+      'string.max': 'Family Name must be at most {#limit} characters long', // if more than 14 characters
     }),
 
 
@@ -772,7 +778,7 @@ router.post("/register",  validBody(registerUserSchema),   async (req, res) => {
 
     // If our email matches the email the user inputs throw this error
     if(emailExists){
-      res.status(400).json({Error: "Email Already Registered. Please Enter a New Email."});
+      res.status(400).json({error: "This Email Is Already Registered. Please Enter a New Email."});
       debugUser(`Email Already Registered \n`); // Message Appears in terminal
     }
     else{  // !!!!!! SUCCESS !!!!!!
@@ -803,6 +809,7 @@ router.post("/register",  validBody(registerUserSchema),   async (req, res) => {
             // ccccc 🍪 COOKIES 🍪 ccccc //
 
 
+
             // eeeeeeeeee EDITS MADE eeeeeeeeee //
 
             // When the user successfully makes an account in the New Edits collection will show that this was done
@@ -822,17 +829,22 @@ router.post("/register",  validBody(registerUserSchema),   async (req, res) => {
 
 
           // Success Message
-          res.status(200).json({User_Added: `User ${newUser.fullName} Added With An Id of ${addingNewUser.insertedId}.`, Auth_Token: `Your AuthToken is ${authToken}`});
+          res.status(200).json({User_Added: `User ${newUser.fullName} Added With An Id of ${addingNewUser.insertedId}.`, Auth_Token: `Your AuthToken is ${authToken}`,             
+          // fullname ADDED THIS TO THE MESSAGE TO ALLOW US TO CALL IT IN ON LOG IN TO SAVE IN NAVBAR
+          fullName: newUser.fullName,
+          // rolesa This sends the roles in the message to be called in to check the users permissions
+          roles: `${newUser.fullName} Has The Roles of ${newUser.role}`});
+
           debugUser(`User ${newUser.fullName} Added With An Id of ${addingNewUser.insertedId} \n`); // Message Appears in terminal
         }
         else{
           // Error Message
-          res.status(400).json({Error: `User ${newUser.fullName} Not Added`});
+          res.status(400).json({error: `User ${newUser.fullName} Not Added`});
           debugUser(`User ${newUser.fullName} Not Added  \n`); // Message Appears in terminal
         }
       }
       catch (err) {
-        res.status(500).json({Error: err.stack});
+        res.status(500).json({error: err.stack});
       }
       }
 });
