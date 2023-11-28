@@ -833,7 +833,10 @@ router.post("/register",  validBody(registerUserSchema),   async (req, res) => {
           // fullname ADDED THIS TO THE MESSAGE TO ALLOW US TO CALL IT IN ON LOG IN TO SAVE IN NAVBAR
           fullName: newUser.fullName,
           // rolesa This sends the roles in the message to be called in to check the users permissions
-          roles: `${newUser.fullName} Has The Roles of ${newUser.role}`});
+          roles: newUser.role,
+          // sends the users new id
+          users_id: addingNewUser.insertedId
+        });
 
           debugUser(`User ${newUser.fullName} Added With An Id of ${addingNewUser.insertedId} \n`); // Message Appears in terminal
         }
@@ -924,7 +927,8 @@ router.post("/login",   validBody(loginUserSchema),   async (req, res) => {
                 // fullname ADDED THIS TO THE MESSAGE TO ALLOW US TO CALL IT IN ON LOG IN TO SAVE IN NAVBAR
                 fullName: usersLoggedIn.fullName,
                 // rolesa This sends the roles in the message to be called in to check the users permissions
-                roles: `${usersLoggedIn.fullName} Has The Roles of ${usersLoggedIn.role}`
+                roles: usersLoggedIn.role,
+                users_id: usersLoggedIn._id
               });
               debugUser(`Welcome ${usersLoggedIn.fullName} You Are Successfully Logged In. Your Auth Token is ${authToken}`); // Message Appears in terminal
             }

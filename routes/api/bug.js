@@ -672,7 +672,7 @@ router.put("/update/:bugId",   isLoggedIn(),  hasPermission("canEditAnyBug", "ca
 
 
           // Success Message
-          res.status(200).json({Bug_Updated: `Bug ${bugsId} updated by User ${getLoggedInUser.fullName} with a User Id of ${getLoggedInUser._id}`,
+          res.status(200).json({Bug_Updated: `Bug ${originalBugsData.title} updated by User ${getLoggedInUser.fullName}`,
           Changes_Made_To: changesMadeByUserMessage }); // Success Message
 
           debugBug(`Bug ${bugsId} updated by User ${getLoggedInUser.fullName} with a User Id of ${getLoggedInUser._id}`);
