@@ -608,8 +608,11 @@ router.put("/update/:bugId",   isLoggedIn(),  hasPermission("canEditAnyBug", "ca
 
 
     // This is looking at the logged in users id and if it matches the id of who created the bug in the bugCreationInformation object they can update
-    if (getLoggedInUser._id.toString() === originalBugsData.bugCreationInformation[0]._id.toString() 
-        || getLoggedInUser.role.includes("Business Analyst") ) // If the user logged in is a Business Analyst they have permission
+    if (
+        getLoggedInUser._id.toString() === originalBugsData.bugCreationInformation[0]._id.toString() || 
+        getLoggedInUser.role.includes("Business Analyst") || // If the user logged in is a Business Analyst they have permission
+        originalBugsData.assignedTo.some((assignedUser) => assignedUser.assignedToUserId.toString() === getLoggedInUser._id.toString() ) // If the users id is in teh assignedTo This bug they can update
+        )
     {
 
       try {
