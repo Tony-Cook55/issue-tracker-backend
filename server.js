@@ -166,7 +166,7 @@ app.get("/", (req, res) => {
 // ERROR HANDLERS
 app.use((req, res) => {
   debugMain(`Sorry Couldn't find ${req.originalUrl}`);
-  res.status(404).json({Error:`Sorry Couldn't Fine ${req.originalUrl}`});
+  res.status(404).json({Error:`Sorry Couldn't Find ${req.originalUrl}`});
 });
 
 // Handles Sever Exceptions to keep my server from crashing

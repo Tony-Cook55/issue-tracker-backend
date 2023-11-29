@@ -1065,7 +1065,7 @@ const updateUserSchema = Joi.object({
 
 
                                   // User has to be a Technical Manager to USE THIS
-router.put("/:userId",   isLoggedIn(),    hasPermission("canEditAnyUser"),    validId("userId"), validBody(updateUserSchema),   async (req, res) => {
+router.put("/update/:userId",   isLoggedIn(),    hasPermission("canEditAnyUser"),    validId("userId"), validBody(updateUserSchema),   async (req, res) => {
 
   // This gets the ID from the users input
   const userId = req.userId;   // We don't need to have .params is due to the validId("id") is using the id from the params in function 
