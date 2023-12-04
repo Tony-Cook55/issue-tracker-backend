@@ -1152,12 +1152,12 @@ router.put("/update/:userId",   isLoggedIn(),    hasPermission("canEditAnyUser")
     }
     else{
       // Error Message
-      res.status(404).json({Error: `User ${userId} Not Found`});
+      res.status(404).json({error: `User ${userId} Not Found`});
       debugUser(`User ${userId} Not Found  \n`); // Message Appears in terminal
     }
   }
   catch (err) {
-    res.status(500).json({Error: err.stack});
+    res.status(500).json({error: err.stack});
   }
 });
 // Admin uuuuuuuuuuuuuu Admin   UPDATE A USER IF ADMIN   Admin uuuuuuuuuuuuuu Admin //
