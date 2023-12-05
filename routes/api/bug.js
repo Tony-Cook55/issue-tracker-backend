@@ -399,6 +399,7 @@ const addNewBugSchema = Joi.object({
     description: Joi.string()
     .trim()
     .required()
+    .max(100) // Set the maximum character limit
     .messages({
       'string.empty': 'Description is required',
       'any.required': 'Description is required',
@@ -561,6 +562,7 @@ const updateBugSchema = Joi.object({
 
   description: Joi.string()
   .trim()
+  .max(100) // Set the maximum character limit
   .messages({
     'string.empty': 'Description is required',
     'any.required': 'Description is required',
@@ -850,7 +852,7 @@ router.put("/:bugId/classify",    isLoggedIn(),  hasPermission("canClassifyAnyBu
 
 
             // Success Messages
-            res.status(200).json({Bug_Classified: `Bug ${bugsId} Classified With a Classification of '${classifyBugFields.classification}' by User ${getLoggedInUser.fullName} With a User Id of ${getLoggedInUser._id}`,
+            res.status(200).json({Bug_Classified: `Bug ${originalBugsData.title} Classified With a Classification of '${classifyBugFields.classification}' by User ${getLoggedInUser.fullName} With a User Id of ${getLoggedInUser._id}`,
               Changes_Made_To: changesMadeByUserMessage});
             debugBug(`Bug ${bugsId} Classified With a Classification of ${classifyBugFields.classification}`);
           }
