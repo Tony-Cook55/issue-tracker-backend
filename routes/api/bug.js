@@ -269,7 +269,7 @@ router.get("/list",   isLoggedIn(), hasPermission("canViewData"),  async (req, r
     let {pageSize, pageNumber} = req.query;
 
       // Makes users input into an int or just default to 10 pages shown
-      pageSize = parseInt(pageSize) || 10;
+      pageSize = parseInt(pageSize) || 3;
       // Make the users input into an int or just go to page 1 by default
       pageNumber = parseInt(pageNumber) || 1;
 
@@ -317,10 +317,13 @@ router.get("/list",   isLoggedIn(), hasPermission("canViewData"),  async (req, r
       const cursor = await db.collection('Bug').aggregate(pipeline);
 
       // Sets the cursor's results into an array to be displayed
-      const foundBug = await cursor.toArray();
+      const bugs = await cursor.toArray();
+
+      // Shows the amount of items in the collection that match the searched results
+      const totalCount = await db.collection("Bug").countDocuments(match);
 
       // Success Message -  Shows the results in an array 
-      res.status(200).json(foundBug);
+      res.status(200).json({bugs, totalCount});
 
   // =============== OUTPUT =============== //
 
