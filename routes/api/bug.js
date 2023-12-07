@@ -148,7 +148,7 @@ router.get("/list",   isLoggedIn(), hasPermission("canViewData"),  async (req, r
       // If there is a Role entered then do this
       if(classification){
         // The entered Role ! MUST BE EXACT ! to how it is in the roles array
-        match.classification = {$eq: classification};
+        match['bugClassified.classification'] = {$eq: classification};
       }
   
   /* ccccccccccccccccc CLASSIFICATION ccccccccccccccccc */
@@ -216,7 +216,7 @@ router.get("/list",   isLoggedIn(), hasPermission("canViewData"),  async (req, r
       if(closed){
         // If the user enters either "True" or "False" (regardless of case), it will show corresponding bugs
         closed = closed.toLowerCase() === "true" ? "True" : "False"; // If you get rid of auto capitalize get rid of this as well
-        match.closed = {$eq: closed};
+        match['bugClosed.closed'] = {$eq: closed};
       }
   
   /* ??????????????????? IS BUG CLOSED ??????????????????? */
@@ -238,10 +238,10 @@ router.get("/list",   isLoggedIn(), hasPermission("canViewData"),  async (req, r
       switch(sortBy){
 
         // If the user adds title in the sortBy it will then make title ascending, created date descending
-        case "title": sort = {title : 1, createdOn: -1}; break;
+        case "title": sort = {title : 1, "bugCreationInformation.createdOn": -1}; break;
 
         // If classification is entered then it will make classification ascending, created date descending
-        case "classification": sort = {classification : 1, classifiedOn : 1, "bugCreationInformation.createdOn": -1}; break;
+        case "classification": sort = {"bugClassified.classification" : 1, "bugClassified.classifiedOn" : 1, "bugCreationInformation.createdOn": -1}; break;
 
         // If assignedTo is entered then it will make assigned to name ascending, created date descending
         case "assignedTo": sort = {"assignedTo.assignedToUser": 1, "assignedTo.assignedOn": -1}; break;
@@ -269,7 +269,7 @@ router.get("/list",   isLoggedIn(), hasPermission("canViewData"),  async (req, r
     let {pageSize, pageNumber} = req.query;
 
       // Makes users input into an int or just default to 10 pages shown
-      pageSize = parseInt(pageSize) || 3;
+      pageSize = parseInt(pageSize) || 6;
       // Make the users input into an int or just go to page 1 by default
       pageNumber = parseInt(pageNumber) || 1;
 

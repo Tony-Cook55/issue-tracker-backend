@@ -248,7 +248,8 @@ router.get("/list",   isLoggedIn(),    hasPermission("canViewData"),  async (req
       // If there is a Role entered then do this
       if(role){
         // The entered Role ! MUST BE EXACT ! to how it is in the roles array
-        match.role = {$eq: role};
+        // Use $in to match documents where the 'role' array contains the specified role
+        match.role = { $in: [role] };
       }
   
   /* rrrrrrrrrrrrrrrr ROLE rrrrrrrrrrrrrrrr */
@@ -284,7 +285,7 @@ router.get("/list",   isLoggedIn(),    hasPermission("canViewData"),  async (req
       } else if(maxAge) {
         match.createdOn = {$gte:pastMaximumDaysOld};
       }
-      debugUser(`The Date Searching For is ${JSON.stringify(match)}`);
+      debugUser(`The Date Searching For is ${JSON.stringify(pastMaximumDaysOld, pastMinimumDaysOld)}`);
 
 
   /* age age age age  AGE OF USER   age age age age */
@@ -328,8 +329,8 @@ router.get("/list",   isLoggedIn(),    hasPermission("canViewData"),  async (req
 
     let {pageSize, pageNumber} = req.query;
 
-      // Makes users input into an int or just have 10 pages shown
-      pageSize = parseInt(pageSize) || 10;
+      // Makes users input into an int or just have 6 pages shown
+      pageSize = parseInt(pageSize) || 6;
       // Make the users input into an int or just go to page 1
       pageNumber = parseInt(pageNumber) || 1;
 
@@ -373,10 +374,13 @@ router.get("/list",   isLoggedIn(),    hasPermission("canViewData"),  async (req
       const cursor = await db.collection('User').aggregate(pipeline);
 
       // Sets the cursor's results into an array to be displayed
-      const foundUser = await cursor.toArray();
+      const users = await cursor.toArray();
+
+      // Shows the amount of items in the collection that match the searched results
+      const totalCount = await db.collection("User").countDocuments(match);
 
       // Success Message -  Shows the results in an array 
-      res.status(200).json(foundUser);
+      res.status(200).json({users, totalCount});
 
   // =============== OUTPUT =============== //
 
