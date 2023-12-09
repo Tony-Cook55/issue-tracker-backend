@@ -1661,7 +1661,7 @@ const addNewTestCaseSchema = Joi.object({
   title: Joi.string()
   .trim()
   .required()
-  .max(50)
+  .max(30)
   .messages({
     'string.empty': 'Title is required',
     'string.max': 'Test Case Title Can Only be 50 Characters Long', // if more than 50 characters
@@ -1679,27 +1679,41 @@ const addNewTestCaseSchema = Joi.object({
   // }),
 
 
+
+
+
+  // HOW TO MAKE ALL INPUTS 1st LETTER BE CAPITAL
+  // custom((value, helpers) => {
+  //   const capitalizedValue = value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+  //   if (['True', 'False'].includes(capitalizedValue)) {
+  //     return capitalizedValue;
+  //   } else {
+  //     return helpers.message('Passed must be True or False');
+  //   }
+  // })
+
+
   passed: Joi.string()
   .trim()
-  // .valid(
-  //   "True",
-  //   "true",
-  //   "False",
-  //   "false"
-  // )
+  .valid('true', 'false', true, false)
   .required()
-  .custom((value, helpers) => { // THIS HERE IS WHAT CAPITALIZES USERS INPUT
-    const capitalizedValue = value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
-    if (["True", "False"].includes(capitalizedValue)) {
-      return capitalizedValue;
+  .custom((value, helpers) => {
+    const lowercasedValue = String(value).toLowerCase();
+    if (['true', 'false'].includes(lowercasedValue)) {
+      return lowercasedValue;
     } else {
-      return helpers.message('Passed Must Be True or False');
+      return helpers.message('Passed must be true or false');
     }
   })
-  .messages({ // These are custom messages that will show based on the "type": "string.empty", that throws on an error
-    'string.empty': 'Must Be True or False', // If passed is left blank
-    'any.required': 'Must Be True or False', // if the passed is left uncheck marked and not entered
+  .messages({
+    'string.empty': 'Must be true or false',
+    'any.required': 'Must be true or false',
   }),
+
+
+
+
+
 
   versionRelease: 
   Joi.string()
@@ -1713,15 +1727,16 @@ const addNewTestCaseSchema = Joi.object({
   }),
 
 
+  
   // OPTIONAL DUE TO IT EITHER BEING FAILED AND NOT FIXED
   appliedFixOnDate: 
   Joi.string()
   .regex(appliedFixOnDateFormat)  // Calls in the strict Date format a user must follow   (MM-DD-YYYY)
   .trim()
+  .allow('') // allows the input to be blank
   .messages({ // These are custom messages that will show based on the "type": "string.empty", that throws on an error
     'string.empty': 'Please Enter a Valid Fix On Date (MM-DD-YYYY)', // If appliedFixOnDate is left blank
     'string.pattern.base': 'Please Enter a Valid Fix On Date (MM-DD-YYYY)',
-    'any.required': 'Please Enter a Valid Fix On Date',
   }),
 
 });
@@ -1821,7 +1836,7 @@ const updateTestCasesSchema = Joi.object({
 
   title: Joi.string()
   .trim()
-  .max(50)
+  .max(30)
   .messages({
     'string.empty': 'Title is required',
     'string.max': 'Test Case Title Can Only be 50 Characters Long', // if more than 50 characters
@@ -1872,6 +1887,7 @@ const updateTestCasesSchema = Joi.object({
   Joi.string()
   .regex(appliedFixOnDateFormat)  // Calls in the strict Date format a user must follow  MOOCHES OFF OF ADDING FUNCTION  (MM-DD-YYYY)
   .trim()
+  .allow('') // allows the input to be blank
   .messages({ // These are custom messages that will show based on the "type": "string.empty", that throws on an error
     'string.empty': 'Please Enter a Valid Fix On Date (MM-DD-YYYY)', // If appliedFixOnDate is left blank
     'string.pattern.base': 'Please Enter a Valid Fix On Date (MM-DD-YYYY)',
