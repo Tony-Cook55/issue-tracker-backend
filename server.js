@@ -9,11 +9,17 @@ PORT=5000
 
 
 // ---- GCLOUD ----
-// After we have gcloud to redeploy add this in terminal     gcloud app deploy
+// After we have gcloud to redeploy add this in terminal   ~!@~!@asdasd  gcloud app deploy
 /*
 To view your application in the web browser run:
   $ gcloud app browse
-*/
+
+  When WORKING WITH BACKEND IN GCLOUD DO THIS : 
+    gcloud config set project cook-issuetracker-backend
+    gcloud app deploy
+  */
+
+  
 // https://cook-issuetracker-backend.uc.r.appspot.com/
 
 
@@ -124,7 +130,7 @@ app.use(authMiddleware(process.env.AUTH_SECRET, 'authToken',
 // asdasd THIS IS NEEDED TO ALLOW FRONT END ACCESS TO THE BACKEND asdasd //
 app.use(cors(
   {
-  origin: "http://localhost:5173",
+  origin: ["http://localhost:5173", "https://cook-issuetracker-frontend.uc.r.appspot.com"],
   credentials: true
   }
 )); // cors is making sure the front end domain and the backend domain are compatible

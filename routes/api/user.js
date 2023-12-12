@@ -151,7 +151,7 @@ function issueAuthCookie(res, authToken){
 
   //Cookies can be set as "httpOnly," which means they cannot be accessed by client-side JavaScript, making them more secure against certain types of attacks (e.g., cross-site scripting).
   // This is the options of the cookie and also sets the age to 1hr (1000 milliseconds * 60 *60)
-  const cookieOptions = {httpOnly: true, maxAge: 1000*60*60};
+  const cookieOptions = {httpOnly: true, maxAge: 1000*60*60 , sameSite:"none", secure:true};
 
   // Creates the cookie using the cookieOptions and calls in the token from above
   res.cookie("authToken", authToken, cookieOptions);
