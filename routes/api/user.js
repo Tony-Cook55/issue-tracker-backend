@@ -1241,24 +1241,6 @@ router.delete("/delete/:userId",   isLoggedIn(),   hasPermission("canEditAnyUser
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee EDITS COLLECTION eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee //
 
 
@@ -1398,6 +1380,97 @@ router.delete("/delete/edits/:editsMadeId",   isLoggedIn(),   validId("editsMade
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// +B +B +B +B +B +B +B +B +B +B  BUG GAME UPDATING POINTS  +B +B +B +B +B +B +B +B +B +B  */
+router.patch("/updateBugsShot", isLoggedIn(),  validId("userId"),  async (req, res) => {
+  try {
+
+    const dbConnected = await connect();
+
+    const { bugsShot } = req.body;
+
+
+
+    // If the user is logged in then we will get THAT LOGGED IN USERS ID
+    const getLoggedInUser = await getUserById(newId(req.auth._id))
+
+
+    if(getLoggedInUser){
+
+        // Use Mongoose's findOneAndUpdate to directly update the bugsShot Field
+        const updatedUser =  await dbConnected.collection("User").findOneAndUpdate(
+          { _id: getLoggedInUser._id },
+          { $set: { bugsShot: bugsShot } },
+          { new: true } // This option returns the modified document instead of the original
+        );
+
+
+      // Respond with a success message
+      res.json({ Point_Gained: `Added ${bugsShot} Points. Bugs Shot updated successfully`});
+      debugUser(`Added ${bugsShot} Point.`);
+    }
+    else if(!getLoggedInUser){
+      res.status(400).json(`Couldn't Add Score.`);
+      debugUser(`Couldn't Add Score.`);
+    }
+    else{
+      // Error Message
+      res.status(404).json({Id_Error: `User ${getLoggedInUser._id} Not Found`});
+      debugUser(`User ${getLoggedInUser._id} Not Found\n`); // Message Appears in terminal
+    }
+  }
+  catch (err) {
+  // Error Message
+  res.status(500).json({Error: err.stack});
+  }
+
+});
+// +B +B +B +B +B +B +B +B +B +B  BUG GAME UPDATING POINTS  +B +B +B +B +B +B +B +B +B +B  */
+
+
+
+
+
+
+
+router.get('/bugsShot/:userId', validId("userId"),  async (req, res) => {
+  try {
+    const usersId = req.userId;
+
+    // Fetch the user by ID from your database (use your existing getUserById or similar function)
+    const userScore = await getUserById(usersId);
+
+    // Check if the user exists and has a bugsShot property
+    if (userScore) { // userScore && userScore.bugsShot !== undefined
+  
+        // If the user exists, initialize the bug score to 0 if not found
+        const bugsShot = userScore ? (userScore.bugsShot || 0) : 0;
+
+      res.json({ bugsShot: bugsShot });
+    } 
+    else {
+      res.status(404).json({ message: 'User not found or bug score not available' });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 
 
