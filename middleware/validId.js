@@ -8,6 +8,7 @@ const validId = (parameterName) => {
 
   return (req,res,next) => {
     try {
+      // console.log(`Received ${parameterName}:`, req.params[parameterName]);
 
       // Creating a dynamic property with the name of whatever is passed in parameterName
       req[parameterName] = new ObjectId(req.params[parameterName]); // Using brackets here due to us not knowin what will be passed into it.

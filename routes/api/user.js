@@ -1394,6 +1394,38 @@ router.delete("/delete/edits/:editsMadeId",   isLoggedIn(),   validId("editsMade
 
 
 
+// bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb BUG SHOOTER GAME bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb //
+
+
+
+
+/* gggggggggggggggg GET ALL USERS SCORES NAMES AND ID gggggggggggggggg */
+router.get('/bugsShot/leaderBoard', isLoggedIn(), hasPermission('canViewData'), async (req, res) => {
+
+      // Connects to our database to allow us to still search
+      const dbConnected = await connect();
+
+      // Retrieve bug scores, full names, and user IDs for all users
+      const bugScores = await dbConnected.collection('User')
+        .find({ bugsShot: { $exists: true } })
+        .project({ _id: 1, fullName: 1, bugsShot: 1 })
+        .toArray();
+  
+      // Success Message - Shows the results in an array
+      res.status(200).json(bugScores);
+
+});
+/* gggggggggggggggg GET ALL USERS SCORES NAMES AND ID gggggggggggggggg */
+
+
+
+
+
+
+
+
+
+
 
 
 // +B +B +B +B +B +B +B +B +B +B  BUG GAME UPDATING POINTS  +B +B +B +B +B +B +B +B +B +B  */
@@ -1448,6 +1480,8 @@ router.patch("/updateBugsShot", isLoggedIn(),  validId("userId"),  async (req, r
 
 
 
+
+// sssssssssss SEARCH INDIVIDUAL USERS ITEM FOR BUGS SCORE  sssssssssss //
 router.get('/bugsShot/:userId', validId("userId"),  async (req, res) => {
   try {
     const usersId = req.userId;
@@ -1471,12 +1505,14 @@ router.get('/bugsShot/:userId', validId("userId"),  async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+// sssssssssss SEARCH INDIVIDUAL USERS ITEM FOR BUGS SCORE  sssssssssss //
 
 
 
 
 
 
+// bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb BUG SHOOTER GAME bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb //
 
 
 
