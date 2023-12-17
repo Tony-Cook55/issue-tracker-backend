@@ -181,7 +181,7 @@ async function addNewUser(newUser){
 
   // Here we create a new item in the database called usersCreationDate and we set the time it was made at for its value
   //newUser.usersCreationDate = new Date().toDateString();
-  newUser.usersCreationDate = new Date().toLocaleString('en-US'); //.toLocaleString('en-US')
+  newUser.usersCreationDate = new Date().toLocaleString('en-US', { timeZone: 'UTC' }); //.toLocaleString('en-US')
 
 
   const addingNewUser = await dbConnected.collection("User").insertOne(newUser);
