@@ -516,7 +516,7 @@ router.post("/new",   isLoggedIn(), hasPermission("canCreateBug"),  validBody(ad
 
 
             // Success Message                                                                                                                 old call in to see users Id then get name                
-            res.status(200).json({Bug_Added: `Bug ${newBug.title} Added With An Id of ${addingNewBug.insertedId} by User ${ getLoggedInUser.fullName  /*userIdFound.fullName*/} With a User Id of ${getLoggedInUser._id}`});
+            res.status(200).json({Bug_Added: `Bug ${newBug.title} Added With An Id of ${addingNewBug.insertedId} by User ${ getLoggedInUser.fullName}`});
             debugBug(`Bug ${newBug.title} Added With An Id of ${addingNewBug.insertedId} by User ${ getLoggedInUser.fullName} With a User Id of: ${getLoggedInUser._id}`); // Message Appears in terminal
           }
           else{
