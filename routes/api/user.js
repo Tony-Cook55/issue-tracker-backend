@@ -458,6 +458,8 @@ const updateSelfSchema = Joi.object({
 
   fullName: Joi.string()
     .trim()
+    .min(1)
+    .max(25)
     .messages({
       'string.empty': 'Full name is required',
       'any.required': 'Full name is required',
@@ -466,6 +468,8 @@ const updateSelfSchema = Joi.object({
 
     givenName: Joi.string()
     .trim()
+    .min(1)
+    .max(25)
     .messages({
       'string.empty': 'Given name is required',
       'any.required': 'Given name is required',
@@ -474,6 +478,8 @@ const updateSelfSchema = Joi.object({
 
     familyName: Joi.string()
     .trim()
+    .min(1)
+    .max(25)
     .messages({
       'string.empty': 'Family name is required',
       'any.required': 'Family name is required',
@@ -695,7 +701,8 @@ const registerUserSchema = Joi.object({
   fullName: Joi.string()
     .trim()
     .required()
-    .max(34)
+    .min(1)
+    .max(25)
     .messages({
       'string.empty': 'Full name is required',
       'any.required': 'Full name is required',
@@ -706,7 +713,8 @@ const registerUserSchema = Joi.object({
     givenName: Joi.string()
     .trim()
     .required()
-    .max(14)
+    .min(1)
+    .max(25)
     .messages({
       'string.empty': 'Given name is required',
       'any.required': 'Given name is required',
@@ -717,7 +725,8 @@ const registerUserSchema = Joi.object({
     familyName: Joi.string()
     .trim()
     .required()
-    .max(14)
+    .min(1)
+    .max(25)
     .messages({
       'string.empty': 'Family name is required',
       'any.required': 'Family name is required',
@@ -1004,6 +1013,8 @@ const updateUserSchema = Joi.object({
 
   fullName: Joi.string()
     .trim()
+    .min(1)
+    .max(25)
     .messages({
       'string.empty': 'Full name is required',
       'any.required': 'Full name is required',
@@ -1012,6 +1023,8 @@ const updateUserSchema = Joi.object({
 
     givenName: Joi.string()
     .trim()
+    .min(1)
+    .max(25)
     .messages({
       'string.empty': 'Given name is required',
       'any.required': 'Given name is required',
@@ -1020,6 +1033,8 @@ const updateUserSchema = Joi.object({
 
     familyName: Joi.string()
     .trim()
+    .min(1)
+    .max(25)
     .messages({
       'string.empty': 'Family name is required',
       'any.required': 'Family name is required',
